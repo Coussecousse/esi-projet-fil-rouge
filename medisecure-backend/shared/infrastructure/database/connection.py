@@ -12,13 +12,20 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Récupération de l'URL de connexion à la base de données
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/medisecure")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    # Default for Kubernetes (detected by KUBERNETES_SERVICE_HOST env var)
+    if os.getenv("KUBERNETES_SERVICE_HOST"):
+        DATABASE_URL = "postgresql+asyncpg://medisecure_user:medisecure_password@db-service:5432/medisecure"
+    else:
+        # Default for local dev: Docker Compose
+        DATABASE_URL = "postgresql+asyncpg://medisecure_user:medisecure_password@medisecure-db:5432/medisecure"
 
 # S'assurer que nous utilisons bien asyncpg
 if "postgresql://" in DATABASE_URL and "asyncpg" not in DATABASE_URL:
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
-logger.info(f"Utilisation de l'URL de base de données: {DATABASE_URL.split('@')[0].split(':')[0]}:***@{DATABASE_URL.split('@')[1]}")
+logger.info(f"Utilisation de l'URL de base de données: {DATABASE_URL}")
 
 # Créer le moteur de base de données asynchrone
 engine = create_async_engine(DATABASE_URL, echo=True)

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: medisecure-api
+          image: coussecousse/medisecure-api:latest
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://medisecure_user:medisecure_password@db-service:5432/medisecure"
+            - name: SECRET_KEY
+              value: "your-secret-key-here-change-in-production"
+            - name: ALGORITHM
+              value: "HS256"
+            - name: ACCESS_TOKEN_EXPIRE_MINUTES
+              value: "30"

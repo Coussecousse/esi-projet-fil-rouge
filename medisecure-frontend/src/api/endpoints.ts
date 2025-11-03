@@ -1,6 +1,19 @@
 // medisecure-frontend/src/api/endpoints.ts
 
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+// Extend Window interface to include our environment variables
+declare global {
+  interface Window {
+    _env_?: {
+      VITE_API_URL?: string;
+    };
+  }
+}
+
+// Use relative path for API since Nginx will proxy requests
+// This allows the frontend to make requests to /api which Nginx will forward to the backend
+export const API_URL = "/api";
+
+console.log('Using API_URL:', API_URL);
 
 export const ENDPOINTS = {
   AUTH: {

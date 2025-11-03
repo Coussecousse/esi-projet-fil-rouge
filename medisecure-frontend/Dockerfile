@@ -1,19 +1,15 @@
-# Dockerfile pour le frontend
-FROM node:18-alpine
-
-# Update Alpine packages to reduce vulnerabilities
-RUN apk update && apk upgrade --no-cache
-
+# Build stage
+FROM node:18-alpine AS build
 WORKDIR /app
-
-# Copier package.json
 COPY package.json ./
-
-# Installer les dépendances (utiliser npm install car pas de package-lock.json)
 RUN npm install
+COPY . .
+RUN npm run build
 
-# Exposer le port
+# Production stage
+FROM nginx:alpine AS prod
+WORKDIR /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html/
+COPY config/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 3000
-
-# Commande de démarrage
-CMD ["npm", "run", "dev"]
+CMD ["nginx", "-g", "daemon off;"]

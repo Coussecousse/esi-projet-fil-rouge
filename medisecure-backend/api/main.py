@@ -50,11 +50,14 @@ app = FastAPI(
 
 # Configuration CORS - Modification pour accepter les requêtes du frontend
 origins = [
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:3000",  # React dev server
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:3001",
     "http://localhost",
-    "http://frontend",  # Si vous utilisez Docker Compose avec un service "frontend"
-    "*"  # Temporairement pour le développement
+    "http://frontend",
+    "http://frontend-service:3001",
+    "http://frontend-service:3000",
+    "*" # Pour le developpement, à retirer en production
 ]
 
 app.add_middleware(

@@ -110,8 +110,8 @@ async def login(
             is_password_valid = True
         else:
             # Vérifier le mot de passe hashé
-            if user_model.password_hash:
-                is_password_valid = verify_password(form_data.password, user_model.password_hash)
+            if user_model.hashed_password:
+                is_password_valid = verify_password(form_data.password, user_model.hashed_password)
         
         if not is_password_valid:
             logger.warning(f"Mot de passe incorrect pour: {user_model.email}")

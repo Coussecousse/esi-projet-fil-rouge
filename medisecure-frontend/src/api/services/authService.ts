@@ -58,6 +58,11 @@ const authService = {
         localStorage.setItem("access_token", response.access_token);
         // Stocker les informations de l'utilisateur
         localStorage.setItem("user", JSON.stringify(response.user));
+        console.log("Token stocké dans localStorage:", response.access_token.substring(0, 20) + "...");
+        
+        // Vérifier que le token a bien été stocké
+        const storedToken = localStorage.getItem("access_token");
+        console.log("Vérification du token stocké:", storedToken ? "✓ Token trouvé" : "✗ Token NON trouvé");
       } else {
         throw new Error("Token non reçu dans la réponse");
       }

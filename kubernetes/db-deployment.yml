@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-deployment
+spec:
+  replicas: 1
+  selector: 
+    matchLabels:
+      app: medisecure-db
+  template:
+    metadata:
+      labels:
+        app: medisecure-db
+    spec:
+      containers:
+        - name: medisecure-db
+          image: postgres:15-alpine
+          env: 
+            - name: POSTGRES_DB
+              value: "medisecure"
+            - name: POSTGRES_USER
+              value: "medisecure_user"
+            - name: POSTGRES_PASSWORD
+              value: "medisecure_password"
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d/
+              readOnly: true
+
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+        - name: init-sql
+          configMap:
+            name: medisecure-init-sql
