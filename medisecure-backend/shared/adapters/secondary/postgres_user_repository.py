@@ -180,42 +180,34 @@ class PostgresUserRepository(UserRepositoryProtocol):
             updated_at=user_model.updated_at
         )
     
-    async def get_hashed_password(self, user: User) -> str:
+    async def get_hashed_password_by_id(self, user_id: UUID) -> Optional[str]:
         """
-        Récupère le mot de passe hashé d'un utilisateur.
+        Récupère le mot de passe hashé d'un utilisateur par son ID.
         
         Args:
-            user: L'utilisateur dont on veut récupérer le mot de passe hashé
+            user_id: ID de l'utilisateur
             
         Returns:
-            str: Le mot de passe hashé de l'utilisateur
+            Optional[str]: Le mot de passe hashé ou None si non trouvé
         """
-        query = select(UserModel.hashed_password).where(UserModel.id == user.id)
-        result = await self.session.execute(query)
-        hashed_password = result.scalar_one_or_none()
-        
-        return hashed_password
-    
-    def get_hashed_password(self, user):
-        """
-        Récupère le mot de passe hashé d'un utilisateur.
-        
-        Args:
-            user: L'utilisateur dont on veut récupérer le mot de passe hashé
-            
-        Returns:
-            str: Le mot de passe hashé de l'utilisateur
-        """
-        # Exécuter une requête pour récupérer le mot de passe hashé
-        async def get_password():
-            query = select(UserModel.hashed_password).where(UserModel.id == user.id)
-            result = await self.session.execute(query)
+        async with self.session_factory() as session:
+            query = select(UserModel.hashed_password).where(UserModel.id == user_id)
+            result = await session.execute(query)
             hashed_password = result.scalar_one_or_none()
             return hashed_password
+    
+    async def get_hashed_password_by_email(self, email: str) -> Optional[str]:
+        """
+        Récupère le mot de passe hashé d'un utilisateur par son email.
         
-        # Exécuter la tâche asynchrone de manière synchrone pour simplifier l'interface
-        import asyncio
-        loop = asyncio.get_event_loop()
-        hashed_password = loop.run_until_complete(get_password())
-        
-        return hashed_password
+        Args:
+            email: Email de l'utilisateur
+            
+        Returns:
+            Optional[str]: Le mot de passe hashé ou None si non trouvé
+        """
+        async with self.session_factory() as session:
+            query = select(UserModel.hashed_password).where(UserModel.email == email)
+            result = await session.execute(query)
+            hashed_password = result.scalar_one_or_none()
+            return hashed_password

@@ -129,6 +129,73 @@ async def create_appointment(
             detail=f"An unexpected error occurred: {str(e)}"
         )
 
+@router.get("/calendar/", response_model=AppointmentListResponseDTO)
+async def get_calendar(
+    year: int = Query(..., description="Year to fetch the calendar for"),
+    month: int = Query(..., description="Month to fetch the calendar for"),
+    token_payload: Dict[str, Any] = Depends(extract_token_payload),
+    container: Container = Depends(get_container)
+):
+    """
+    Récupère les rendez-vous pour un mois spécifique (pour l'affichage calendrier).
+    """
+    try:
+        # Vérifier les permissions
+        user_role = token_payload.get("role", "")
+        allowed_roles = ["admin", "doctor", "nurse", "receptionist"]
+        
+        if not check_role_permission(user_role, allowed_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to view the calendar"
+            )
+        
+        # Déterminer les dates de début et de fin du mois
+        start_date = date(year, month, 1)
+        if month == 12:
+            end_date = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            end_date = date(year, month + 1, 1) - timedelta(days=1)
+        
+        # Récupérer le repository
+        appointment_repository = container.appointment_repository()
+        
+        # Récupérer les rendez-vous dans cette plage de dates
+        appointments = await appointment_repository.get_by_date_range(start_date, end_date)
+        
+        # Convertir en DTOs
+        appointment_dtos = [
+            AppointmentResponseDTO(
+                id=appointment.id,
+                patient_id=appointment.patient_id,
+                doctor_id=appointment.doctor_id,
+                start_time=appointment.start_time,
+                end_time=appointment.end_time,
+                status=appointment.status.value,
+                reason=appointment.reason,
+                notes=appointment.notes,
+                created_at=appointment.created_at,
+                updated_at=appointment.updated_at,
+                is_active=appointment.is_active
+            )
+            for appointment in appointments
+        ]
+        
+        # Construire la réponse
+        return AppointmentListResponseDTO(
+            appointments=appointment_dtos,
+            total=len(appointments),
+            skip=0,
+            limit=len(appointments)
+        )
+        
+    except Exception as e:
+        logger.exception(f"Erreur inattendue lors de la récupération du calendrier: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}"
+        )
+
 # Ajout des autres routes nécessaires
 @router.get("/{appointment_id}", response_model=AppointmentResponseDTO)
 async def get_appointment(
@@ -315,73 +382,6 @@ async def list_appointments(
         
     except Exception as e:
         logger.exception(f"Erreur inattendue lors de la récupération des rendez-vous: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An unexpected error occurred: {str(e)}"
-        )
-
-@router.get("/calendar/", response_model=AppointmentListResponseDTO)
-async def get_calendar(
-    year: int = Query(..., description="Year to fetch the calendar for"),
-    month: int = Query(..., description="Month to fetch the calendar for"),
-    token_payload: Dict[str, Any] = Depends(extract_token_payload),
-    container: Container = Depends(get_container)
-):
-    """
-    Récupère les rendez-vous pour un mois spécifique (pour l'affichage calendrier).
-    """
-    try:
-        # Vérifier les permissions
-        user_role = token_payload.get("role", "")
-        allowed_roles = ["admin", "doctor", "nurse", "receptionist"]
-        
-        if not check_role_permission(user_role, allowed_roles):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have permission to view the calendar"
-            )
-        
-        # Déterminer les dates de début et de fin du mois
-        start_date = date(year, month, 1)
-        if month == 12:
-            end_date = date(year + 1, 1, 1) - timedelta(days=1)
-        else:
-            end_date = date(year, month + 1, 1) - timedelta(days=1)
-        
-        # Récupérer le repository
-        appointment_repository = container.appointment_repository()
-        
-        # Récupérer les rendez-vous dans cette plage de dates
-        appointments = await appointment_repository.get_by_date_range(start_date, end_date)
-        
-        # Convertir en DTOs
-        appointment_dtos = [
-            AppointmentResponseDTO(
-                id=appointment.id,
-                patient_id=appointment.patient_id,
-                doctor_id=appointment.doctor_id,
-                start_time=appointment.start_time,
-                end_time=appointment.end_time,
-                status=appointment.status.value,
-                reason=appointment.reason,
-                notes=appointment.notes,
-                created_at=appointment.created_at,
-                updated_at=appointment.updated_at,
-                is_active=appointment.is_active
-            )
-            for appointment in appointments
-        ]
-        
-        # Construire la réponse
-        return AppointmentListResponseDTO(
-            appointments=appointment_dtos,
-            total=len(appointments),
-            skip=0,
-            limit=len(appointments)
-        )
-        
-    except Exception as e:
-        logger.exception(f"Erreur inattendue lors de la récupération du calendrier: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An unexpected error occurred: {str(e)}"

@@ -3,15 +3,15 @@ from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from contextlib import asynccontextmanager
-import os
 import logging
-from dotenv import load_dotenv
 
+from shared.infrastructure.config.settings import get_settings
 from shared.adapters.primary.uuid_generator import UuidGenerator
 from shared.adapters.secondary.postgres_user_repository import PostgresUserRepository
 from shared.adapters.secondary.in_memory_user_repository import InMemoryUserRepository
 from shared.infrastructure.services.smtp_mailer import SmtpMailer
 from shared.services.authenticator.basic_authenticator import BasicAuthenticator
+from shared.application.services.auth_service import AuthenticationService
 
 from patient_management.infrastructure.adapters.secondary.postgres_patient_repository import PostgresPatientRepository
 from patient_management.infrastructure.adapters.secondary.in_memory_patient_repository import InMemoryPatientRepository
@@ -20,9 +20,6 @@ from patient_management.domain.services.patient_service import PatientService
 from appointment_management.infrastructure.adapters.secondary.postgres_appointment_repository import PostgresAppointmentRepository
 from appointment_management.infrastructure.adapters.secondary.in_memory_appointment_repository import InMemoryAppointmentRepository
 from appointment_management.domain.services.appointment_service import AppointmentService
-
-# Charger les variables d'environnement
-load_dotenv()
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO)
@@ -34,35 +31,31 @@ class Container(containers.DeclarativeContainer):
     Centralise la création et la gestion des instances des différentes classes.
     """
     
+    # Récupération des settings centralisées
+    settings = providers.Singleton(get_settings)
+    
     config = providers.Configuration()
     
-    # Configuration du container
-    database_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/medisecure")
-    environment = os.getenv("ENVIRONMENT", "development")
+    # Log sécurisé de la configuration
+    def _log_database_config():
+        settings_instance = get_settings()
+        db_url = settings_instance.get_database_url()
+        safe_url = db_url.split('@')[0] + ":***@" + (db_url.split('@')[1] if '@' in db_url else 'N/A')
+        logger.info(f"Database URL configurée: {safe_url}")
+        logger.info(f"Environnement: {settings_instance.server.environment}")
+        logger.info(f"Mode debug: {settings_instance.server.debug}")
     
-    # S'assurer que nous utilisons bien asyncpg
-    if "postgresql://" in database_url and "asyncpg" not in database_url:
-        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
+    _log_database_config()
     
-    # Vérifier si nous sommes en mode Docker
-    if os.getenv("ENVIRONMENT") == "docker" or os.path.exists("/.dockerenv"):
-        # En mode Docker, utiliser l'hôte 'db'
-        database_url = database_url.replace("@localhost:", "@db:")
-    
-    config.database_url.from_value(database_url)
-    config.environment.from_value(environment)
-    
-    logger.info(f"Database URL configurée: {database_url.split('@')[0]}:***@{database_url.split('@')[1] if '@' in database_url else 'N/A'}")
-    
-    # Création du moteur avec les bonnes options
+    # Création du moteur avec configuration centralisée
     engine = providers.Singleton(
         create_async_engine,
-        database_url,
-        echo=True if environment == "development" else False,
-        pool_size=10,
-        max_overflow=20,
+        providers.Factory(lambda s: s.get_database_url(), settings),
+        echo=providers.Factory(lambda s: s.database.echo or s.server.debug, settings),
+        pool_size=providers.Factory(lambda s: s.database.pool_size, settings),
+        max_overflow=providers.Factory(lambda s: s.database.max_overflow, settings),
         pool_pre_ping=True,  # Vérifier la connexion avant de l'utiliser
-        pool_recycle=3600,   # Recycler les connexions toutes les heures
+        pool_recycle=providers.Factory(lambda s: s.database.pool_recycle, settings),
     )
     
     # Création de la factory de session
@@ -94,11 +87,7 @@ class Container(containers.DeclarativeContainer):
     id_generator = providers.Factory(UuidGenerator)
     authenticator = providers.Factory(BasicAuthenticator)
     
-    # Services du domaine
-    patient_service = providers.Factory(PatientService)
-    appointment_service = providers.Factory(AppointmentService)
-    
-    # Adaptateurs secondaires - Repositories
+    # Adaptateurs secondaires - Repositories (doivent être définis avant les services qui les utilisent)
 
     # Pour production :
     user_repository = providers.Factory(
@@ -116,6 +105,16 @@ class Container(containers.DeclarativeContainer):
         session_factory=async_session_factory
     )
     
+    # Services d'application
+    auth_service = providers.Factory(
+        AuthenticationService,
+        user_repository=user_repository
+    )
+    
+    # Services du domaine
+    patient_service = providers.Factory(PatientService)
+    appointment_service = providers.Factory(AppointmentService)
+    
     # Repositories en mémoire pour les tests
     user_repository_in_memory = providers.Singleton(InMemoryUserRepository)
     patient_repository_in_memory = providers.Singleton(InMemoryPatientRepository)
@@ -126,9 +125,11 @@ class Container(containers.DeclarativeContainer):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        settings_instance = get_settings()
         logger.info("Container d'injection de dépendances initialisé")
-        logger.info(f"Environnement: {self.config.environment}")
-        logger.info(f"Mode: {'Docker' if os.getenv('ENVIRONMENT') == 'docker' or os.path.exists('/.dockerenv') else 'Local'}")
+        logger.info(f"Environnement: {settings_instance.server.environment}")
+        logger.info(f"Version de l'app: {settings_instance.version}")
+        logger.info(f"Configuration sécurisée: ✅")
 
 # Instance globale du container pour faciliter l'accès
 container_instance = None

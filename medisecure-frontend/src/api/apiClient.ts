@@ -36,11 +36,15 @@ class ApiClient {
         const token = localStorage.getItem("access_token");
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log(`Token ajouté à la requête: ${token.substring(0, 20)}...`);
+        } else {
+          console.warn("Aucun token trouvé dans localStorage");
         }
         console.log(
           `Requête ${config.method?.toUpperCase()} vers ${config.url}`,
           config.data
         );
+        console.log("Headers:", config.headers);
         return config;
       },
       (error) => {

@@ -17,7 +17,7 @@ const MedicalRecordsPage = lazy(
 const UploadDocumentPage = lazy(
   () => import("./pages/medical-records/UploadDocumentPage")
 );
-const Dashboard = lazy(() => import("./pages/dashboard/DashboardPage"));
+const Dashboard = lazy(() => import("./pages/dashboard/DashBoardPage"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const ForgotPasswordPage = lazy(
   () => import("./pages/auth/ForgotPasswordPage")

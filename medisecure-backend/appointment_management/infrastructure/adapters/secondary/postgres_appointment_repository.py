@@ -15,6 +15,26 @@ from shared.infrastructure.database.models.appointment_model import AppointmentM
 logger = logging.getLogger(__name__)
 
 class PostgresAppointmentRepository(AppointmentRepositoryProtocol):
+
+    @staticmethod
+    def _map_status(raw_status):
+        """
+        Map a raw status value from the DB/model to the AppointmentStatus enum, tolerant to case and value/name.
+        """
+        if hasattr(raw_status, 'value'):
+            status_value = str(raw_status.value)
+        else:
+            status_value = str(raw_status)
+        try:
+            return AppointmentStatus(status_value)
+        except Exception:
+            try:
+                return AppointmentStatus(status_value.lower())
+            except Exception:
+                try:
+                    return AppointmentStatus[status_value.upper()]
+                except Exception as e:
+                    raise ValueError(f"Impossible de mapper le statut du modèle: '{status_value}' vers AppointmentStatus") from e
     """
     Adaptateur secondaire pour le repository des rendez-vous avec PostgreSQL.
     Implémente le port AppointmentRepositoryProtocol.
@@ -57,6 +77,7 @@ class PostgresAppointmentRepository(AppointmentRepositoryProtocol):
             patient_id = appointment.patient_id if isinstance(appointment.patient_id, UUID) else UUID(str(appointment.patient_id))
             doctor_id = appointment.doctor_id if isinstance(appointment.doctor_id, UUID) else UUID(str(appointment.doctor_id))
             
+            logger.warning(f"[CREATE] Status envoyé à la BDD: {appointment.status} / {getattr(appointment.status, 'value', appointment.status)}")
             async with self.session_factory() as session:
                 # Créer le modèle avec les bonnes conversions de types
                 appointment_model = AppointmentModel(
@@ -107,6 +128,7 @@ class PostgresAppointmentRepository(AppointmentRepositoryProtocol):
                 logger.error(f"Tentative de mise à jour d'un rendez-vous inexistant: {appointment.id}")
                 raise ValueError(f"Le rendez-vous avec l'ID {appointment.id} n'existe pas")
             
+            logger.warning(f"[UPDATE] Status envoyé à la BDD: {appointment.status} / {getattr(appointment.status, 'value', appointment.status)}")
             # Préparer la requête de mise à jour
             query = (
                 update(AppointmentModel)
@@ -116,7 +138,7 @@ class PostgresAppointmentRepository(AppointmentRepositoryProtocol):
                     doctor_id=doctor_id,
                     start_time=appointment.start_time,
                     end_time=appointment.end_time,
-                    status=AppointmentStatusModel(appointment.status.value),
+                    status=appointment.status.value.upper(),
                     reason=appointment.reason,
                     notes=appointment.notes,
                     updated_at=datetime.utcnow(),
@@ -314,17 +336,16 @@ class PostgresAppointmentRepository(AppointmentRepositoryProtocol):
     
     def _map_to_entity(self, appointment_model: AppointmentModel) -> Appointment:
         try:
-            # S'assurer que le statut est valide
-            status_value = appointment_model.status.value if hasattr(appointment_model.status, 'value') else str(appointment_model.status)
-            
-            # Créer l'entité
+            logger.warning(f"[READ] Status lu depuis la BDD: {getattr(appointment_model, 'status', None)}")
+            # Conversion robuste du statut
+            status = self._map_status(appointment_model.status)
             return Appointment(
                 id=appointment_model.id,
                 patient_id=appointment_model.patient_id,
                 doctor_id=appointment_model.doctor_id,
                 start_time=appointment_model.start_time,
                 end_time=appointment_model.end_time,
-                status=AppointmentStatus(status_value),
+                status=status,
                 reason=appointment_model.reason,
                 notes=appointment_model.notes,
                 created_at=appointment_model.created_at,

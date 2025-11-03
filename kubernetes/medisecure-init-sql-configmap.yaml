@@ -1,0 +1,154 @@
+apiVersion: v1
+data:
+  init.sql: "-- medisecure-backend/init.sql\r\n-- Script d'initialisation de la base
+    de données MediSecure\r\n\r\n-- Suppression des types et tables existants pour
+    une réinitialisation propre\r\nDROP TABLE IF EXISTS appointments CASCADE;\r\nDROP
+    TABLE IF EXISTS patients CASCADE;\r\nDROP TABLE IF EXISTS users CASCADE;\r\nDROP
+    TYPE IF EXISTS appointmentstatus CASCADE;\r\nDROP TYPE IF EXISTS userrole CASCADE;\r\n\r\n--
+    Création des types enum\r\nCREATE TYPE userrole AS ENUM ('ADMIN', 'DOCTOR', 'NURSE',
+    'PATIENT', 'RECEPTIONIST');\r\nCREATE TYPE appointmentstatus AS ENUM ('SCHEDULED',
+    'CONFIRMED', 'CANCELLED', 'COMPLETED', 'missed');\r\n\r\n-- Création de la table
+    users\r\nCREATE TABLE users (\r\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\r\n
+    \ email VARCHAR(255) NOT NULL UNIQUE,\r\n  hashed_password VARCHAR(255) NOT NULL,\r\n
+    \ first_name VARCHAR(100) NOT NULL,\r\n  last_name VARCHAR(100) NOT NULL,\r\n
+    \ role userrole NOT NULL,\r\n  is_active BOOLEAN DEFAULT TRUE,\r\n  created_at
+    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n);\r\n\r\n--
+    Création de la table patients\r\nCREATE TABLE patients (\r\n  id UUID PRIMARY
+    KEY DEFAULT gen_random_uuid(),\r\n  user_id UUID REFERENCES users(id) ON DELETE
+    SET NULL,\r\n  first_name VARCHAR(100) NOT NULL,\r\n  last_name VARCHAR(100) NOT
+    NULL,\r\n  date_of_birth DATE NOT NULL,\r\n  gender VARCHAR(50) NOT NULL,\r\n
+    \ address VARCHAR(200),\r\n  city VARCHAR(100),\r\n  postal_code VARCHAR(20),\r\n
+    \ country VARCHAR(100),\r\n  phone_number VARCHAR(20),\r\n  email VARCHAR(255),\r\n
+    \ blood_type VARCHAR(10),\r\n  allergies JSONB DEFAULT '{}',\r\n  chronic_diseases
+    JSONB DEFAULT '{}',\r\n  current_medications JSONB DEFAULT '{}',\r\n  has_consent
+    BOOLEAN DEFAULT TRUE,\r\n  consent_date TIMESTAMP,\r\n  gdpr_consent BOOLEAN DEFAULT
+    TRUE,\r\n  insurance_provider VARCHAR(100),\r\n  insurance_id VARCHAR(100),\r\n
+    \ notes TEXT,\r\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n  updated_at
+    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n  is_active BOOLEAN DEFAULT TRUE\r\n);\r\n\r\n--
+    Création de la table appointments\r\nCREATE TABLE appointments (\r\n  id UUID
+    PRIMARY KEY DEFAULT gen_random_uuid(),\r\n  patient_id UUID NOT NULL REFERENCES
+    patients(id) ON DELETE CASCADE,\r\n  doctor_id UUID NOT NULL REFERENCES users(id)
+    ON DELETE CASCADE,\r\n  start_time TIMESTAMP NOT NULL,\r\n  end_time TIMESTAMP
+    NOT NULL,\r\n  status appointmentstatus DEFAULT 'SCHEDULED',\r\n  reason VARCHAR(255),\r\n
+    \ notes TEXT,\r\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n  updated_at
+    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n  is_active BOOLEAN DEFAULT TRUE,\r\n
+    \ CONSTRAINT check_appointment_times CHECK (end_time > start_time)\r\n);\r\n\r\n--
+    Création des index pour améliorer les performances\r\nCREATE INDEX idx_users_email
+    ON users(email);\r\nCREATE INDEX idx_patients_email ON patients(email);\r\nCREATE
+    INDEX idx_patients_user_id ON patients(user_id);\r\nCREATE INDEX idx_appointments_patient_id
+    ON appointments(patient_id);\r\nCREATE INDEX idx_appointments_doctor_id ON appointments(doctor_id);\r\nCREATE
+    INDEX idx_appointments_start_time ON appointments(start_time);\r\nCREATE INDEX
+    idx_appointments_status ON appointments(status);\r\n\r\n-- Création des triggers
+    pour mettre à jour updated_at\r\nCREATE OR REPLACE FUNCTION update_updated_at()\r\nRETURNS
+    TRIGGER AS $$\r\nBEGIN\r\n  NEW.updated_at = CURRENT_TIMESTAMP;\r\n  RETURN NEW;\r\nEND;\r\n$$
+    LANGUAGE plpgsql;\r\n\r\nCREATE TRIGGER update_users_updated_at\r\n  BEFORE UPDATE
+    ON users\r\n  FOR EACH ROW\r\n  EXECUTE FUNCTION update_updated_at();\r\n\r\nCREATE
+    TRIGGER update_patients_updated_at\r\n  BEFORE UPDATE ON patients\r\n  FOR EACH
+    ROW\r\n  EXECUTE FUNCTION update_updated_at();\r\n\r\nCREATE TRIGGER update_appointments_updated_at\r\n
+    \ BEFORE UPDATE ON appointments\r\n  FOR EACH ROW\r\n  EXECUTE FUNCTION update_updated_at();\r\n\r\n--
+    Insertion de l'utilisateur admin avec le bon hash de mot de passe\r\n-- Le hash
+    correspond au mot de passe \"Admin123!\"\r\nINSERT INTO users (id, email, hashed_password,
+    first_name, last_name, role, is_active, created_at, updated_at)\r\nVALUES (\r\n
+    \ '00000000-0000-0000-0000-000000000000'::UUID,\r\n  'admin@medisecure.com',\r\n
+    \ '$2b$12$kAqB5L8z7JNm0xjHwZ7Ane3cQh/2A8x2yrJvONhBQbvQyh.2cVy3.',  -- Hash correct
+    pour \"Admin123!\"\r\n  'Admin',\r\n  'Utilisateur',\r\n  'ADMIN',\r\n  TRUE,\r\n
+    \ CURRENT_TIMESTAMP,\r\n  CURRENT_TIMESTAMP\r\n);\r\n\r\n-- Insertion de médecins
+    de test\r\nINSERT INTO users (id, email, hashed_password, first_name, last_name,
+    role, is_active)\r\nVALUES \r\n  ('11111111-1111-1111-1111-111111111111'::UUID,
+    'doctor1@medisecure.com', '$2b$12$kAqB5L8z7JNm0xjHwZ7Ane3cQh/2A8x2yrJvONhBQbvQyh.2cVy3.',
+    'Jean', 'Dupont', 'DOCTOR', TRUE),\r\n  ('22222222-2222-2222-2222-222222222222'::UUID,
+    'doctor2@medisecure.com', '$2b$12$kAqB5L8z7JNm0xjHwZ7Ane3cQh/2A8x2yrJvONhBQbvQyh.2cVy3.',
+    'Marie', 'Martin', 'DOCTOR', TRUE);\r\n\r\n-- Insertion de patients de test\r\nINSERT
+    INTO patients (id, first_name, last_name, date_of_birth, gender, address, city,
+    postal_code, country, phone_number, email, has_consent, gdpr_consent)\r\nVALUES
+    \r\n  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::UUID, 'Sophie', 'Bernard', '1985-06-15',
+    'female', '10 rue de la Paix', 'Paris', '75001', 'France', '0612345678', 'sophie.bernard@example.com',
+    TRUE, TRUE),\r\n  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::UUID, 'Pierre', 'Durand',
+    '1975-03-22', 'male', '25 avenue Victor Hugo', 'Lyon', '69001', 'France', '0698765432',
+    'pierre.durand@example.com', TRUE, TRUE);\r\n\r\n-- Insertion de clients/patients
+    supplémentaires avec informations complètes et noms diversifiés\r\nINSERT INTO
+    patients (id, first_name, last_name, date_of_birth, gender, address, city, postal_code,
+    country, phone_number, email, blood_type, has_consent, gdpr_consent, insurance_provider,
+    insurance_id, notes)\r\nVALUES \r\n  ('a1b2c3d4-e5f6-4789-a123-456789abcdef'::UUID,
+    'Amina', 'Ben-Ahmed', '1992-11-08', 'female', '15 boulevard Saint-Michel', 'Marseille',
+    '13001', 'France', '0654321098', 'amina.benahmed@example.com', 'A+', TRUE, TRUE,
+    'CPAM Marseille', 'MAR123456789', 'Patiente suivie pour hypertension légère'),\r\n
+    \ ('b2c3d4e5-f6a7-4890-b234-567890bcdef1'::UUID, 'Kwame', 'Asante', '1968-04-30',
+    'male', '8 rue des Lilas', 'Toulouse', '31000', 'France', '0567890123', 'kwame.asante@example.com',
+    'O-', TRUE, TRUE, 'Mutuelle Générale', 'TOU987654321', 'Diabétique de type 2,
+    contrôles réguliers'),\r\n  ('c3d4e5f6-a7b8-4901-c345-678901cdef12'::UUID, 'Li',
+    'Wei', '1987-09-14', 'female', '42 avenue de la République', 'Nice', '06000',
+    'France', '0678901234', 'li.wei@example.com', 'B+', TRUE, TRUE, 'Harmonie Mutuelle',
+    'NIC456789123', 'Allergie aux pénicillines'),\r\n  ('d4e5f6a7-b8c9-4012-d456-789012def123'::UUID,
+    'Fatou', 'Diallo', '1995-12-03', 'female', '7 place de la Mairie', 'Bordeaux',
+    '33000', 'France', '0689012345', 'fatou.diallo@example.com', 'AB+', TRUE, TRUE,
+    'MGEN', 'BOR789123456', 'Sportive, suivi préventif');\r\n\r\n-- Insertion de rendez-vous
+    pour les patients existants et nouveaux\r\nINSERT INTO appointments (id, patient_id,
+    doctor_id, start_time, end_time, status, reason, notes)\r\nVALUES \r\n  -- Rendez-vous
+    pour Sophie Bernard (aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa)\r\n  ('e5f6a7b8-c9d0-4123-e567-890123ef1234'::UUID,
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::UUID, '11111111-1111-1111-1111-111111111111'::UUID,
+    '2025-07-02 09:00:00', '2025-07-02 09:30:00', 'SCHEDULED', 'Consultation générale',
+    'Contrôle de routine'),\r\n  ('f6a7b8c9-d0e1-4234-f678-901234f12345'::UUID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::UUID,
+    '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-15 14:30:00', '2025-07-15
+    15:00:00', 'CONFIRMED', 'Suivi spécialisé', 'Résultats d analyses sanguines'),\r\n
+    \ ('a7b8c9d0-e1f2-4345-a789-012345a12456'::UUID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::UUID,
+    '11111111-1111-1111-1111-111111111111'::UUID, '2025-06-15 10:00:00', '2025-06-15
+    10:30:00', 'COMPLETED', 'Visite de contrôle', 'Tension artérielle normale'),\r\n
+    \ \r\n  -- Rendez-vous pour Pierre Durand (bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb)\r\n
+    \ ('b8c9d0e1-f2a3-4456-b890-123456b12567'::UUID, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::UUID,
+    '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-03 11:00:00', '2025-07-03
+    11:30:00', 'SCHEDULED', 'Consultation cardiologique', 'ECG de contrôle programmé'),\r\n
+    \ ('c9d0e1f2-a3b4-4567-c901-234567c12678'::UUID, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::UUID,
+    '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-20 16:00:00', '2025-07-20
+    16:30:00', 'SCHEDULED', 'Renouvellement ordonnance', 'Prescription médicaments
+    chroniques'),\r\n  ('d0e1f2a3-b4c5-4678-d012-345678d12789'::UUID, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::UUID,
+    '22222222-2222-2222-2222-222222222222'::UUID, '2025-06-01 08:30:00', '2025-06-01
+    09:00:00', 'COMPLETED', 'Bilan annuel', 'Excellent état général'),\r\n  \r\n  --
+    Rendez-vous pour Amina Ben-Ahmed (a1b2c3d4-e5f6-4789-a123-456789abcdef)\r\n  ('e1f2a3b4-c5d6-4789-e123-456789e1289a'::UUID,
+    'a1b2c3d4-e5f6-4789-a123-456789abcdef'::UUID, '11111111-1111-1111-1111-111111111111'::UUID,
+    '2025-07-05 13:30:00', '2025-07-05 14:00:00', 'CONFIRMED', 'Suivi hypertension',
+    'Mesure tension et ajustement traitement'),\r\n  ('f2a3b4c5-d6e7-4890-f234-567890f1390b'::UUID,
+    'a1b2c3d4-e5f6-4789-a123-456789abcdef'::UUID, '22222222-2222-2222-2222-222222222222'::UUID,
+    '2025-07-25 10:30:00', '2025-07-25 11:00:00', 'SCHEDULED', 'Consultation spécialisée',
+    'Évaluation cardiovasculaire'),\r\n  ('a3b4c5d6-e7f8-4901-a345-678901a1401c'::UUID,
+    'a1b2c3d4-e5f6-4789-a123-456789abcdef'::UUID, '11111111-1111-1111-1111-111111111111'::UUID,
+    '2025-05-20 15:00:00', '2025-05-20 15:30:00', 'COMPLETED', 'Première consultation',
+    'Diagnostic hypertension légère'),\r\n  \r\n  -- Rendez-vous pour Kwame Asante
+    (b2c3d4e5-f6a7-4890-b234-567890bcdef1)\r\n  ('b4c5d6e7-f8a9-4012-b456-789012b1512d'::UUID,
+    'b2c3d4e5-f6a7-4890-b234-567890bcdef1'::UUID, '22222222-2222-2222-2222-222222222222'::UUID,
+    '2025-07-08 09:30:00', '2025-07-08 10:00:00', 'SCHEDULED', 'Contrôle diabète',
+    'Surveillance glycémie et HbA1c'),\r\n  ('c5d6e7f8-a9b0-4123-c567-890123c1623e'::UUID,
+    'b2c3d4e5-f6a7-4890-b234-567890bcdef1'::UUID, '11111111-1111-1111-1111-111111111111'::UUID,
+    '2025-07-22 14:00:00', '2025-07-22 14:30:00', 'CONFIRMED', 'Suivi podologique',
+    'Examen des pieds - prévention complications'),\r\n  ('d6e7f8a9-b0c1-4234-d678-901234d1734f'::UUID,
+    'b2c3d4e5-f6a7-4890-b234-567890bcdef1'::UUID, '22222222-2222-2222-2222-222222222222'::UUID,
+    '2025-06-10 11:30:00', '2025-06-10 12:00:00', 'COMPLETED', 'Bilan trimestriel',
+    'Diabète bien équilibré'),\r\n  \r\n  -- Rendez-vous pour Li Wei (c3d4e5f6-a7b8-4901-c345-678901cdef12)\r\n
+    \ ('e7f8a9b0-c1d2-4345-e789-012345e18450'::UUID, 'c3d4e5f6-a7b8-4901-c345-678901cdef12'::UUID,
+    '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-10 08:00:00', '2025-07-10
+    08:30:00', 'SCHEDULED', 'Consultation allergologie', 'Test allergie nouveaux médicaments'),\r\n
+    \ ('f8a9b0c1-d2e3-4456-f890-123456f19561'::UUID, 'c3d4e5f6-a7b8-4901-c345-678901cdef12'::UUID,
+    '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-28 16:30:00', '2025-07-28
+    17:00:00', 'SCHEDULED', 'Suivi gynécologique', 'Consultation de routine annuelle'),\r\n
+    \ ('a9b0c1d2-e3f4-4567-a901-234567a10672'::UUID, 'c3d4e5f6-a7b8-4901-c345-678901cdef12'::UUID,
+    '11111111-1111-1111-1111-111111111111'::UUID, '2025-06-05 13:00:00', '2025-06-05
+    13:30:00', 'COMPLETED', 'Urgence allergie', 'Réaction allergique médicamenteuse
+    - traitée'),\r\n  \r\n  -- Rendez-vous pour Fatou Diallo (d4e5f6a7-b8c9-4012-d456-789012def123)\r\n
+    \ ('b0c1d2e3-f4a5-4678-b012-345678b11783'::UUID, 'd4e5f6a7-b8c9-4012-d456-789012def123'::UUID,
+    '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-12 17:00:00', '2025-07-12
+    17:30:00', 'CONFIRMED', 'Médecine du sport', 'Bilan cardiologique pour compétition'),\r\n
+    \ ('c1d2e3f4-a5b6-4789-c123-456789c12894'::UUID, 'd4e5f6a7-b8c9-4012-d456-789012def123'::UUID,
+    '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-30 10:00:00', '2025-07-30
+    10:30:00', 'SCHEDULED', 'Vaccination voyage', 'Préparation voyage Asie du Sud-Est'),\r\n
+    \ ('d2e3f4a5-b6c7-4890-d234-567890d139a5'::UUID, 'd4e5f6a7-b8c9-4012-d456-789012def123'::UUID,
+    '22222222-2222-2222-2222-222222222222'::UUID, '2025-06-25 12:00:00', '2025-06-25
+    12:30:00', 'COMPLETED', 'Visite médicale', 'Certificat médical sport obtenu');\r\n--
+    Vérification de l'installation\r\nDO $$\r\nBEGIN\r\n  RAISE NOTICE 'Base de données
+    MediSecure initialisée avec succès';\r\n  RAISE NOTICE 'Utilisateur admin créé
+    : admin@medisecure.com / Admin123!';\r\n  RAISE NOTICE 'Médecins créés : doctor1@medisecure.com
+    et doctor2@medisecure.com (mot de passe: Admin123!)';\r\n  RAISE NOTICE 'Patients
+    de test créés';\r\nEND $$;"
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: medisecure-init-sql

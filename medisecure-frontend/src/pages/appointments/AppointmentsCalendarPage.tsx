@@ -188,11 +188,11 @@ const AppointmentsCalendarPage: React.FC = () => {
     try {
       let result = null;
 
-      if (newStatus === "cancelled") {
+      if (newStatus === "CANCELLED") {
         result = await appointmentService.cancelAppointment(id);
-      } else if (newStatus === "confirmed") {
+      } else if (newStatus === "CONFIRMED") {
         result = await appointmentService.confirmAppointment(id);
-      } else if (newStatus === "completed") {
+      } else if (newStatus === "COMPLETED") {
         result = await appointmentService.completeAppointment(id);
       }
 
@@ -215,10 +215,10 @@ const AppointmentsCalendarPage: React.FC = () => {
 
         // Message de succès
         const messages = {
-          confirmed: "Rendez-vous confirmé",
-          cancelled: "Rendez-vous annulé",
-          completed: "Rendez-vous marqué comme terminé",
-          scheduled: "Rendez-vous replanifié",
+          CONFIRMED: "Rendez-vous confirmé",
+          CANCELLED: "Rendez-vous annulé",
+          COMPLETED: "Rendez-vous marqué comme terminé",
+          SCHEDULED: "Rendez-vous replanifié",
         };
 
         toast.success(messages[newStatus]);
@@ -237,13 +237,13 @@ const AppointmentsCalendarPage: React.FC = () => {
   // Obtenir le statut d'un rendez-vous sous forme de badge
   const getStatusBadge = (status: Appointment["status"]) => {
     switch (status) {
-      case "confirmed":
+      case "CONFIRMED":
         return <span className="badge badge-success">Confirmé</span>;
-      case "scheduled":
+      case "SCHEDULED":
         return <span className="badge badge-warning">Planifié</span>;
-      case "cancelled":
+      case "CANCELLED":
         return <span className="badge badge-error">Annulé</span>;
-      case "completed":
+      case "COMPLETED":
         return (
           <span className="badge bg-slate-100 text-slate-800">Terminé</span>
         );
@@ -411,11 +411,11 @@ const AppointmentsCalendarPage: React.FC = () => {
                         <div
                           key={appointment.id}
                           className={`text-xs p-1 rounded truncate ${
-                            appointment.status === "confirmed"
+                            appointment.status === "CONFIRMED"
                               ? "bg-green-100 text-green-800"
-                              : appointment.status === "scheduled"
+                              : appointment.status === "SCHEDULED"
                               ? "bg-yellow-100 text-yellow-800"
-                              : appointment.status === "cancelled"
+                              : appointment.status === "CANCELLED"
                               ? "bg-red-100 text-red-800"
                               : "bg-slate-100 text-slate-800"
                           }`}
@@ -520,10 +520,10 @@ const AppointmentsCalendarPage: React.FC = () => {
                     </Link>
 
                     {/* Actions de changement de statut */}
-                    {appointment.status === "scheduled" && (
+                    {appointment.status === "SCHEDULED" && (
                       <button
                         onClick={() =>
-                          handleStatusChange(appointment.id, "confirmed")
+                          handleStatusChange(appointment.id, "CONFIRMED")
                         }
                         className="text-sm text-green-600 hover:text-green-700"
                       >
@@ -531,12 +531,12 @@ const AppointmentsCalendarPage: React.FC = () => {
                       </button>
                     )}
 
-                    {(appointment.status === "scheduled" ||
-                      appointment.status === "confirmed") && (
+                    {(appointment.status === "SCHEDULED" ||
+                      appointment.status === "CONFIRMED") && (
                       <>
                         <button
                           onClick={() =>
-                            handleStatusChange(appointment.id, "completed")
+                            handleStatusChange(appointment.id, "COMPLETED")
                           }
                           className="text-sm text-blue-600 hover:text-blue-700"
                         >
@@ -544,7 +544,7 @@ const AppointmentsCalendarPage: React.FC = () => {
                         </button>
                         <button
                           onClick={() =>
-                            handleStatusChange(appointment.id, "cancelled")
+                            handleStatusChange(appointment.id, "CANCELLED")
                           }
                           className="text-sm text-red-600 hover:text-red-700"
                         >

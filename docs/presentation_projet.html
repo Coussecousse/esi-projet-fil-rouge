@@ -859,7 +859,7 @@ class Appointment:
         doctor_id: UUID,
         start_time: datetime,
         end_time: datetime,
-        status: str = "scheduled",
+        status: str = "SCHEDULED",
         notes: Optional[str] = None,
         created_at: Optional[datetime] = None
     ):
@@ -883,26 +883,26 @@ class Appointment:
         if (self.end_time - self.start_time).total_seconds() < 900:  # 15 minutes minimum
             raise ValueError("Un rendez-vous doit durer au moins 15 minutes")
             
-        valid_statuses = ["scheduled", "confirmed", "cancelled", "completed"]
+        valid_statuses = ["SCHEDULED", "CONFIRMED", "CANCELLED", "COMPLETED"]
         if self.status not in valid_statuses:
             raise ValueError(f"Statut invalide. Valeurs autorisées: {valid_statuses}")
     
     def cancel(self) -> None:
         """Annuler un rendez-vous"""
-        if self.status == "cancelled":
+        if self.status == "CANCELLED":
             raise ValueError("Le rendez-vous est déjà annulé")
             
-        if self.status == "completed":
+        if self.status == "COMPLETED":
             raise ValueError("Impossible d'annuler un rendez-vous terminé")
             
-        self.status = "cancelled"
+        self.status = "CANCELLED"
     
     def reschedule(self, new_start_time: datetime, new_end_time: datetime) -> None:
         """Reprogrammer un rendez-vous"""
-        if self.status == "cancelled":
+        if self.status == "CANCELLED":
             raise ValueError("Impossible de reprogrammer un rendez-vous annulé")
             
-        if self.status == "completed":
+        if self.status == "COMPLETED":
             raise ValueError("Impossible de reprogrammer un rendez-vous terminé")
         
         old_start = self.start_time
@@ -1042,7 +1042,7 @@ class CreateAppointmentUseCase:
             start_time=command.start_time,
             end_time=command.end_time,
             notes=command.notes,
-            status="scheduled"
+            status="SCHEDULED"
         )
         
         # Sauvegarder le rendez-vous
@@ -1208,7 +1208,7 @@ class PostgreSQLAppointmentRepository(AppointmentRepositoryPort):
         """Trouve les rendez-vous en conflit pour un médecin"""
         query = self.session.query(AppointmentModel).filter(
             AppointmentModel.doctor_id == str(doctor_id),
-            AppointmentModel.status.in_(["scheduled", "confirmed"]),
+            AppointmentModel.status.in_(["SCHEDULED", "CONFIRMED"]),
             or_(
                 # Commence pendant un autre rendez-vous
                 and_(
@@ -1339,7 +1339,7 @@ class AppointmentModel(Base):
     doctor_id = Column(String(36), ForeignKey("doctors.id"), nullable=False, index=True)
     start_time = Column(DateTime, nullable=False, index=True)
     end_time = Column(DateTime, nullable=False, index=True)
-    status = Column(String(20), nullable=False, default="scheduled")
+    status = Column(String(20), nullable=False, default="SCHEDULED")
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now)
     

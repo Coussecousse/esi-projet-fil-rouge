@@ -1,9 +1,8 @@
 // src/components/layout/MainLayout/MainLayout.tsx
-import React from "react";
+import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Header from "../Header/Header";
-import Sidebar from "../Sidebar/Sidebar";
-import { useState } from "react";
+import Sidebar from "../SideBar/SideBar";
 
 const MainLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);

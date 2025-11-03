@@ -1,11 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-import os
+from sqlalchemy.ext.asyncio import AsyncSession
 import logging
-from dotenv import load_dotenv
+from contextlib import asynccontextmanager
+from datetime import datetime
 
+from shared.infrastructure.config.settings import get_settings, Settings
+from shared.infrastructure.database.connection import get_db
 from api.handlers.exception_handlers import (
     AppException, 
     app_exception_handler, 
@@ -22,44 +25,49 @@ from appointment_management.infrastructure.adapters.primary.controllers.appointm
 # Importer et configurer le container
 from shared.container.container import Container
 
-# Configuration du logging
+# Récupérer les settings centralisées
+settings = get_settings()
+
+# Configuration du logging basée sur les settings
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=getattr(logging, settings.logging.level),
+    format=settings.logging.format
 )
 logger = logging.getLogger(__name__)
-
-# Charger les variables d'environnement
-load_dotenv()
 
 # Initialiser le container
 container = Container()
 
-# Informations de version pour l'API
-API_VERSION = "1.0.0"
-API_PREFIX = "/api"  # Ne pas utiliser os.getenv ici, mais définir explicitement
+# Prefix API depuis les settings
+API_PREFIX = "/api"
+
+# Lifecycle de l'application
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Gestion du cycle de vie de l'application"""
+    # Startup
+    logger.info("=== Démarrage de MediSecure API ===")
+    logger.info(f"Version: {settings.version}")
+    logger.info(f"Environnement: {settings.server.environment}")
+    logger.info(f"Mode debug: {settings.server.debug}")
+    logger.info(f"Préfixe API: {API_PREFIX}")
+    yield
+    # Shutdown
+    logger.info("=== Arrêt de MediSecure API ===")
 
 app = FastAPI(
-    title="MediSecure API",
-    description="API pour la gestion des dossiers patients et des rendez-vous médicaux",
-    version=API_VERSION,
+    title=settings.app_name,
+    description=settings.description,
+    version=settings.version,
     docs_url=f"{API_PREFIX}/docs",
     redoc_url=f"{API_PREFIX}/redoc",
     openapi_url=f"{API_PREFIX}/openapi.json",
+    lifespan=lifespan
 )
-
-# Configuration CORS - Modification pour accepter les requêtes du frontend
-origins = [
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:3000",  # React dev server
-    "http://localhost",
-    "http://frontend",  # Si vous utilisez Docker Compose avec un service "frontend"
-    "*"  # Temporairement pour le développement
-]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.server.cors_origins + (["*"] if settings.is_development() else []),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -79,39 +87,85 @@ app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(appointment_router, prefix=API_PREFIX)
 
 @app.get(f"{API_PREFIX}/health")
-async def health_check():
-    """Endpoint de vérification de l'état de l'API"""
+async def health_check(
+    detailed: bool = False,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Endpoint de vérification de l'état de l'API - Version avancée
+    
+    Args:
+        detailed: Si True, retourne des vérifications détaillées
+        db: Session de base de données pour les vérifications
+    
+    Returns:
+        Dict: État de santé de l'application et de ses dépendances
+    """
+    from shared.infrastructure.monitoring.health_checker import HealthChecker
+    
+    if detailed:
+        # Health check complet avec vérifications détaillées
+        health_checker = HealthChecker()
+        return await health_checker.run_all_checks(session=db)
+    else:
+        # Health check basique pour les sondes Kubernetes
+        return {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "version": settings.version,
+            "environment": settings.server.environment,
+            "app_name": settings.app_name
+        }
+
+@app.get(f"{API_PREFIX}/health/live")
+async def liveness_probe():
+    """
+    Sonde de vivacité (liveness probe) pour Kubernetes.
+    Vérifie si l'application répond toujours.
+    """
     return {
-        "status": "healthy",
-        "version": API_VERSION,
-        "environment": os.getenv("ENVIRONMENT", "development")
+        "status": "alive",
+        "timestamp": datetime.utcnow().isoformat()
     }
 
-# Événement de démarrage de l'application
-@app.on_event("startup")
-async def startup_event():
-    logger.info("=== MediSecure API démarrée ===")
-    logger.info(f"Version: {API_VERSION}")
-    logger.info(f"Environnement: {os.getenv('ENVIRONMENT', 'development')}")
-    logger.info(f"Préfixe API: {API_PREFIX}")
-    logger.info(f"CORS Origins: {origins}")
-    
-    # Afficher toutes les routes pour débogage
-    for route in app.routes:
-        logger.info(f"Route: {route.path}, methods: {route.methods}")
-
-# Événement d'arrêt de l'application
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("=== MediSecure API arrêtée ===")
+@app.get(f"{API_PREFIX}/health/ready") 
+async def readiness_probe(db: AsyncSession = Depends(get_db)):
+    """
+    Sonde de disponibilité (readiness probe) pour Kubernetes.
+    Vérifie si l'application est prête à recevoir du trafic.
+    """
+    try:
+        # Test rapide de la base de données
+        from sqlalchemy import text
+        await db.execute(text("SELECT 1"))
+        
+        return {
+            "status": "ready",
+            "timestamp": datetime.utcnow().isoformat(),
+            "database": "connected"
+        }
+    except Exception as e:
+        logger.error(f"Readiness check failed: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "not_ready",
+                "timestamp": datetime.utcnow().isoformat(),
+                "database": "disconnected",
+                "error": str(e)
+            }
+        )
 
 if __name__ == "__main__":
     import uvicorn
     
-    # Configurer le serveur Uvicorn
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
-    reload = os.getenv("ENVIRONMENT", "development") == "development"
+    # Configuration du serveur depuis les settings
+    logger.info(f"Démarrage du serveur sur {settings.server.host}:{settings.server.port}")
+    logger.info(f"Mode reload: {settings.is_development()}")
     
-    logger.info(f"Démarrage du serveur sur {host}:{port} (reload: {reload})")
-    uvicorn.run("api.main:app", host=host, port=port, reload=reload)
+    uvicorn.run(
+        "api.main:app", 
+        host=settings.server.host, 
+        port=settings.server.port, 
+        reload=settings.is_development()
+    )

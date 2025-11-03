@@ -25,6 +25,7 @@ const appointmentSchema = z.object({
   doctorId: z.string().min(1, "Veuillez sélectionner un médecin"),
   reason: z.string().optional(),
   notes: z.string().optional(),
+  status: z.enum(["SCHEDULED", "CONFIRMED", "CANCELLED", "COMPLETED"]),
 });
 
 type FormData = z.infer<typeof appointmentSchema>;
@@ -67,6 +68,7 @@ const CreateAppointmentPage: React.FC = () => {
       doctorId: "",
       reason: "",
       notes: "",
+      status: "SCHEDULED",
     },
   });
 
@@ -149,6 +151,7 @@ const CreateAppointmentPage: React.FC = () => {
         endTime: endISO,
         reason: data.reason || "Consultation",
         notes: data.notes,
+        status: "SCHEDULED",
       };
 
       console.log("Données envoyées à l'API:", appointmentData);

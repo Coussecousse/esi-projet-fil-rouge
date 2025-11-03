@@ -370,16 +370,16 @@ const DashboardPage: React.FC = () => {
                       </p>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          appointment.status === "confirmed"
+                          appointment.status === "CONFIRMED"
                             ? "bg-green-100 text-green-800"
                             : "bg-yellow-100 text-yellow-800"
                         }`}
                       >
-                        {appointment.status === "confirmed"
+                        {appointment.status === "CONFIRMED"
                           ? "Confirmé"
-                          : appointment.status === "scheduled"
+                          : appointment.status === "SCHEDULED"
                           ? "Planifié"
-                          : appointment.status === "cancelled"
+                          : appointment.status === "CANCELLED"
                           ? "Annulé"
                           : "Terminé"}
                       </span>
