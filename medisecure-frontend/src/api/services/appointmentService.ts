@@ -8,7 +8,7 @@ export interface Appointment {
   doctorId: string;
   startTime: string;
   endTime: string;
-  status: "scheduled" | "confirmed" | "cancelled" | "completed";
+  status: "SCHEDULED" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
   reason?: string;
   notes?: string;
   createdAt: string;
@@ -22,10 +22,11 @@ export interface AppointmentCreateDto {
   endTime: string;
   reason?: string;
   notes?: string;
+  status?: "SCHEDULED" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
 }
 
 export interface AppointmentUpdateDto {
-  status?: "scheduled" | "confirmed" | "cancelled" | "completed";
+  status?: "SCHEDULED" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
   startTime?: string;
   endTime?: string;
   reason?: string;
@@ -36,7 +37,7 @@ export interface AppointmentFilter {
   patientId?: string;
   doctorId?: string;
   date?: string;
-  status?: string;
+  status?: "SCHEDULED" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
   startDate?: string;
   endDate?: string;
 }
@@ -69,6 +70,7 @@ const adaptAppointmentCreateDto = (frontDto: AppointmentCreateDto): any => {
       end_time: frontDto.endTime,
       reason: frontDto.reason || "Consultation",
       notes: frontDto.notes,
+      status: frontDto.status, 
     };
   } catch (error) {
     console.error("Erreur lors de l'adaptation des données:", error);
@@ -245,11 +247,11 @@ const appointmentService = {
       const response = await apiClient.put<any>(
         ENDPOINTS.APPOINTMENTS.DETAIL(id),
         {
-          status: "cancelled",
+          status: "CANCELLED",
           notes: reason,
         }
       );
-      console.log(`Appointment ${id} cancelled successfully`);
+      console.log(`Appointment ${id} CANCELLED successfully`);
       return adaptAppointmentFromApi(response);
     } catch (error) {
       console.error(`Error cancelling appointment ${id}:`, error);
@@ -262,10 +264,10 @@ const appointmentService = {
       const response = await apiClient.put<any>(
         ENDPOINTS.APPOINTMENTS.DETAIL(id),
         {
-          status: "confirmed",
+          status: "CONFIRMED",
         }
       );
-      console.log(`Appointment ${id} confirmed successfully`);
+      console.log(`Appointment ${id} CONFIRMED successfully`);
       return adaptAppointmentFromApi(response);
     } catch (error) {
       console.error(`Error confirming appointment ${id}:`, error);
@@ -278,10 +280,10 @@ const appointmentService = {
       const response = await apiClient.put<any>(
         ENDPOINTS.APPOINTMENTS.DETAIL(id),
         {
-          status: "completed",
+          status: "COMPLETED",
         }
       );
-      console.log(`Appointment ${id} marked as completed`);
+      console.log(`Appointment ${id} marked as COMPLETED`);
       return adaptAppointmentFromApi(response);
     } catch (error) {
       console.error(`Error completing appointment ${id}:`, error);

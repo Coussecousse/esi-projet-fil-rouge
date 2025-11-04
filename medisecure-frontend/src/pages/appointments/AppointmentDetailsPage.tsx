@@ -77,11 +77,11 @@ const AppointmentDetailsPage: React.FC = () => {
 
       let updatedAppointment = null;
 
-      if (newStatus === "cancelled") {
+      if (newStatus === "CANCELLED") {
         updatedAppointment = await appointmentService.cancelAppointment(id);
-      } else if (newStatus === "confirmed") {
+      } else if (newStatus === "CONFIRMED") {
         updatedAppointment = await appointmentService.confirmAppointment(id);
-      } else if (newStatus === "completed") {
+      } else if (newStatus === "COMPLETED") {
         updatedAppointment = await appointmentService.completeAppointment(id);
       }
 
@@ -89,10 +89,10 @@ const AppointmentDetailsPage: React.FC = () => {
         setAppointment(updatedAppointment);
 
         const statusMessages = {
-          confirmed: "Rendez-vous confirmé avec succès",
-          cancelled: "Rendez-vous annulé avec succès",
-          completed: "Rendez-vous marqué comme terminé",
-          scheduled: "Rendez-vous reprogrammé avec succès",
+          CONFIRMED: "Rendez-vous confirmé avec succès",
+          CANCELLED: "Rendez-vous annulé avec succès",
+          COMPLETED: "Rendez-vous marqué comme terminé",
+          SCHEDULED: "Rendez-vous reprogrammé avec succès",
         };
 
         toast.success(statusMessages[newStatus]);
@@ -153,13 +153,13 @@ const AppointmentDetailsPage: React.FC = () => {
   // Obtenir la classe de couleur en fonction du statut
   const getStatusClass = (status: Appointment["status"]) => {
     switch (status) {
-      case "confirmed":
+      case "CONFIRMED":
         return "bg-green-100 text-green-800";
-      case "scheduled":
+      case "SCHEDULED":
         return "bg-yellow-100 text-yellow-800";
-      case "cancelled":
+      case "CANCELLED":
         return "bg-red-100 text-red-800";
-      case "completed":
+      case "COMPLETED":
         return "bg-slate-100 text-slate-800";
       default:
         return "bg-slate-100 text-slate-800";
@@ -169,13 +169,13 @@ const AppointmentDetailsPage: React.FC = () => {
   // Obtenir le libellé du statut
   const getStatusLabel = (status: Appointment["status"]) => {
     switch (status) {
-      case "confirmed":
+      case "CONFIRMED":
         return "Confirmé";
-      case "scheduled":
+      case "SCHEDULED":
         return "Planifié";
-      case "cancelled":
+      case "CANCELLED":
         return "Annulé";
-      case "completed":
+      case "COMPLETED":
         return "Terminé";
       default:
         return "Inconnu";
@@ -280,11 +280,11 @@ const AppointmentDetailsPage: React.FC = () => {
           <h2 className="text-lg font-medium text-slate-900 mb-4">Actions</h2>
 
           <div className="space-y-4">
-            {appointment.status === "scheduled" && (
+            {appointment.status === "SCHEDULED" && (
               <Button
                 variant="primary"
                 fullWidth
-                onClick={() => handleStatusChange("confirmed")}
+                onClick={() => handleStatusChange("CONFIRMED")}
                 isLoading={isProcessing}
                 disabled={isProcessing}
               >
@@ -292,13 +292,13 @@ const AppointmentDetailsPage: React.FC = () => {
               </Button>
             )}
 
-            {appointment.status === "scheduled" ||
-            appointment.status === "confirmed" ? (
+            {appointment.status === "SCHEDULED" ||
+            appointment.status === "CONFIRMED" ? (
               <>
                 <Button
                   variant="success"
                   fullWidth
-                  onClick={() => handleStatusChange("completed")}
+                  onClick={() => handleStatusChange("COMPLETED")}
                   isLoading={isProcessing}
                   disabled={isProcessing}
                 >
@@ -308,7 +308,7 @@ const AppointmentDetailsPage: React.FC = () => {
                 <Button
                   variant="danger"
                   fullWidth
-                  onClick={() => handleStatusChange("cancelled")}
+                  onClick={() => handleStatusChange("CANCELLED")}
                   isLoading={isProcessing}
                   disabled={isProcessing}
                 >

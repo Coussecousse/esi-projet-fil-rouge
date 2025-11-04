@@ -1,8 +1,10 @@
 # medisecure-backend/appointment_management/application/dtos/appointment_dtos.py
 from typing import Optional, List
 from pydantic import BaseModel, Field, validator
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
+import logging
+logger = logging.getLogger(__name__)
 
 # DTOs pour la création et la mise à jour de rendez-vous
 class AppointmentCreateDTO(BaseModel):
@@ -42,26 +44,31 @@ class AppointmentCreateDTO(BaseModel):
         else:
             raise ValueError(f"Type non pris en charge pour UUID: {type(v)}")
     
-    @validator('start_time', 'end_time', pre=True)
+    @validator('start_time', 'end_time', pre=True, always=True)
     def validate_datetime(cls, v):
-        """Valide et convertit les dates et heures"""
+        """Valide, convertit et rend naive les dates et heures (UTC)"""
+        if v is None:
+            return v
+        dt = v
+        # Analyse de chaîne à datetime
         if isinstance(v, str):
             try:
-                # Traiter les dates ISO avec ou sans 'Z'
                 if v.endswith('Z'):
                     v = v[:-1] + '+00:00'
-                return datetime.fromisoformat(v)
+                dt = datetime.fromisoformat(v)
             except ValueError:
                 try:
-                    # Essayer un autre format commun
-                    return datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%fZ")
+                    dt = datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%fZ")
                 except ValueError:
                     try:
-                        # Format simple date + heure
-                        return datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
+                        dt = datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
                     except ValueError:
                         raise ValueError(f"Format de date invalide: {v}. Utilisez le format ISO 8601.")
-        return v
+        # Si le datetime est timezone-aware, le convertir en UTC et le rendre naive
+        if isinstance(dt, datetime) and dt.tzinfo is not None:
+            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        
+        return dt
 
 class AppointmentUpdateDTO(BaseModel):
     """DTO pour la mise à jour d'un rendez-vous"""
@@ -86,34 +93,35 @@ class AppointmentUpdateDTO(BaseModel):
             raise ValueError("L'heure de fin doit être après l'heure de début")
         return end_time
     
-    @validator('start_time', 'end_time', pre=True)
+    @validator('start_time', 'end_time', pre=True, always=True)
     def validate_datetime(cls, v):
-        """Valide et convertit les dates et heures"""
+        """Valide, convertit et rend naive les dates et heures (UTC)"""
         if v is None:
             return v
+        dt = v
+        # Analyse de chaîne à datetime
         if isinstance(v, str):
             try:
-                # Traiter les dates ISO avec ou sans 'Z'
                 if v.endswith('Z'):
                     v = v[:-1] + '+00:00'
-                return datetime.fromisoformat(v)
+                dt = datetime.fromisoformat(v)
             except ValueError:
                 try:
-                    # Essayer un autre format commun
-                    return datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%fZ")
+                    dt = datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%fZ")
                 except ValueError:
                     try:
-                        # Format simple date + heure
-                        return datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
+                        dt = datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
                     except ValueError:
                         raise ValueError(f"Format de date invalide: {v}. Utilisez le format ISO 8601.")
-        return v
+        if isinstance(dt, datetime) and dt.tzinfo is not None:
+            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt
     
     @validator('status')
     def validate_status(cls, v):
         """Valide que le statut est valide"""
         if v is not None:
-            valid_statuses = ['scheduled', 'confirmed', 'cancelled', 'completed', 'missed']
+            valid_statuses = ['SCHEDULED', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'missed']
             if v not in valid_statuses:
                 raise ValueError(f"Statut invalide. Les valeurs valides sont: {', '.join(valid_statuses)}")
         return v

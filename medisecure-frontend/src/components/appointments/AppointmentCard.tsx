@@ -4,10 +4,10 @@ import { Link } from "react-router-dom";
 
 // Définir le type d'état possible pour un rendez-vous
 export type AppointmentStatus =
-  | "scheduled"
-  | "confirmed"
-  | "cancelled"
-  | "completed";
+  | "SCHEDULED"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | "COMPLETED";
 
 export interface AppointmentCardProps {
   id: string;
@@ -56,25 +56,25 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   // Statut avec classe de couleur et libellé
   const getStatusInfo = (status: AppointmentStatus) => {
     switch (status) {
-      case "scheduled":
+      case "SCHEDULED":
         return {
           label: "Planifié",
           bgColor: "bg-yellow-100",
           textColor: "text-yellow-800",
         };
-      case "confirmed":
+      case "CONFIRMED":
         return {
           label: "Confirmé",
           bgColor: "bg-green-100",
           textColor: "text-green-800",
         };
-      case "cancelled":
+      case "CANCELLED":
         return {
           label: "Annulé",
           bgColor: "bg-red-100",
           textColor: "text-red-800",
         };
-      case "completed":
+      case "COMPLETED":
         return {
           label: "Terminé",
           bgColor: "bg-slate-100",
@@ -170,24 +170,24 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
         </div>
 
         {onStatusChange &&
-          (status === "scheduled" || status === "confirmed") && (
+          (status === "SCHEDULED" || status === "CONFIRMED") && (
             <div className="flex space-x-2">
-              {status === "scheduled" && (
+              {status === "SCHEDULED" && (
                 <button
-                  onClick={() => onStatusChange(id, "confirmed")}
+                  onClick={() => onStatusChange(id, "CONFIRMED")}
                   className="text-sm text-green-600 hover:text-green-800"
                 >
                   Confirmer
                 </button>
               )}
               <button
-                onClick={() => onStatusChange(id, "cancelled")}
+                onClick={() => onStatusChange(id, "CANCELLED")}
                 className="text-sm text-red-600 hover:text-red-800"
               >
                 Annuler
               </button>
               <button
-                onClick={() => onStatusChange(id, "completed")}
+                onClick={() => onStatusChange(id, "COMPLETED")}
                 className="text-sm text-blue-600 hover:text-blue-800"
               >
                 Terminer

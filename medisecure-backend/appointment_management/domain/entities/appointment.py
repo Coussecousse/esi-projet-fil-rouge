@@ -6,11 +6,11 @@ from uuid import UUID
 
 class AppointmentStatus(str, Enum):
     """Énumération des statuts de rendez-vous"""
-    SCHEDULED = "scheduled"
-    CONFIRMED = "confirmed"
-    CANCELLED = "cancelled"
-    COMPLETED = "completed"
-    MISSED = "missed"
+    SCHEDULED = "SCHEDULED"
+    CONFIRMED = "CONFIRMED"
+    CANCELLED = "CANCELLED"
+    COMPLETED = "COMPLETED"
+    MISSED = "MISSED"
 
 @dataclass
 class Appointment:

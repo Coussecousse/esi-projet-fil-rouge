@@ -10,7 +10,7 @@ DROP TYPE IF EXISTS userrole CASCADE;
 
 -- Création des types enum
 CREATE TYPE userrole AS ENUM ('ADMIN', 'DOCTOR', 'NURSE', 'PATIENT', 'RECEPTIONIST');
-CREATE TYPE appointmentstatus AS ENUM ('scheduled', 'confirmed', 'cancelled', 'completed', 'missed');
+CREATE TYPE appointmentstatus AS ENUM ('SCHEDULED', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'missed');
 
 -- Création de la table users
 CREATE TABLE users (
@@ -61,7 +61,7 @@ CREATE TABLE appointments (
   doctor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   start_time TIMESTAMP NOT NULL,
   end_time TIMESTAMP NOT NULL,
-  status appointmentstatus DEFAULT 'scheduled',
+  status appointmentstatus DEFAULT 'SCHEDULED',
   reason VARCHAR(255),
   notes TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -142,34 +142,34 @@ VALUES
 INSERT INTO appointments (id, patient_id, doctor_id, start_time, end_time, status, reason, notes)
 VALUES 
   -- Rendez-vous pour Sophie Bernard (aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa)
-  ('e5f6a7b8-c9d0-4123-e567-890123ef1234'::UUID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-02 09:00:00', '2025-07-02 09:30:00', 'scheduled', 'Consultation générale', 'Contrôle de routine'),
-  ('f6a7b8c9-d0e1-4234-f678-901234f12345'::UUID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-15 14:30:00', '2025-07-15 15:00:00', 'confirmed', 'Suivi spécialisé', 'Résultats d analyses sanguines'),
-  ('a7b8c9d0-e1f2-4345-a789-012345a12456'::UUID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-06-15 10:00:00', '2025-06-15 10:30:00', 'completed', 'Visite de contrôle', 'Tension artérielle normale'),
+  ('e5f6a7b8-c9d0-4123-e567-890123ef1234'::UUID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-02 09:00:00', '2025-07-02 09:30:00', 'SCHEDULED', 'Consultation générale', 'Contrôle de routine'),
+  ('f6a7b8c9-d0e1-4234-f678-901234f12345'::UUID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-15 14:30:00', '2025-07-15 15:00:00', 'CONFIRMED', 'Suivi spécialisé', 'Résultats d analyses sanguines'),
+  ('a7b8c9d0-e1f2-4345-a789-012345a12456'::UUID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-06-15 10:00:00', '2025-06-15 10:30:00', 'COMPLETED', 'Visite de contrôle', 'Tension artérielle normale'),
   
   -- Rendez-vous pour Pierre Durand (bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb)
-  ('b8c9d0e1-f2a3-4456-b890-123456b12567'::UUID, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-03 11:00:00', '2025-07-03 11:30:00', 'scheduled', 'Consultation cardiologique', 'ECG de contrôle programmé'),
-  ('c9d0e1f2-a3b4-4567-c901-234567c12678'::UUID, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-20 16:00:00', '2025-07-20 16:30:00', 'scheduled', 'Renouvellement ordonnance', 'Prescription médicaments chroniques'),
-  ('d0e1f2a3-b4c5-4678-d012-345678d12789'::UUID, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-06-01 08:30:00', '2025-06-01 09:00:00', 'completed', 'Bilan annuel', 'Excellent état général'),
+  ('b8c9d0e1-f2a3-4456-b890-123456b12567'::UUID, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-03 11:00:00', '2025-07-03 11:30:00', 'SCHEDULED', 'Consultation cardiologique', 'ECG de contrôle programmé'),
+  ('c9d0e1f2-a3b4-4567-c901-234567c12678'::UUID, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-20 16:00:00', '2025-07-20 16:30:00', 'SCHEDULED', 'Renouvellement ordonnance', 'Prescription médicaments chroniques'),
+  ('d0e1f2a3-b4c5-4678-d012-345678d12789'::UUID, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-06-01 08:30:00', '2025-06-01 09:00:00', 'COMPLETED', 'Bilan annuel', 'Excellent état général'),
   
   -- Rendez-vous pour Amina Ben-Ahmed (a1b2c3d4-e5f6-4789-a123-456789abcdef)
-  ('e1f2a3b4-c5d6-4789-e123-456789e1289a'::UUID, 'a1b2c3d4-e5f6-4789-a123-456789abcdef'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-05 13:30:00', '2025-07-05 14:00:00', 'confirmed', 'Suivi hypertension', 'Mesure tension et ajustement traitement'),
-  ('f2a3b4c5-d6e7-4890-f234-567890f1390b'::UUID, 'a1b2c3d4-e5f6-4789-a123-456789abcdef'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-25 10:30:00', '2025-07-25 11:00:00', 'scheduled', 'Consultation spécialisée', 'Évaluation cardiovasculaire'),
-  ('a3b4c5d6-e7f8-4901-a345-678901a1401c'::UUID, 'a1b2c3d4-e5f6-4789-a123-456789abcdef'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-05-20 15:00:00', '2025-05-20 15:30:00', 'completed', 'Première consultation', 'Diagnostic hypertension légère'),
+  ('e1f2a3b4-c5d6-4789-e123-456789e1289a'::UUID, 'a1b2c3d4-e5f6-4789-a123-456789abcdef'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-05 13:30:00', '2025-07-05 14:00:00', 'CONFIRMED', 'Suivi hypertension', 'Mesure tension et ajustement traitement'),
+  ('f2a3b4c5-d6e7-4890-f234-567890f1390b'::UUID, 'a1b2c3d4-e5f6-4789-a123-456789abcdef'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-25 10:30:00', '2025-07-25 11:00:00', 'SCHEDULED', 'Consultation spécialisée', 'Évaluation cardiovasculaire'),
+  ('a3b4c5d6-e7f8-4901-a345-678901a1401c'::UUID, 'a1b2c3d4-e5f6-4789-a123-456789abcdef'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-05-20 15:00:00', '2025-05-20 15:30:00', 'COMPLETED', 'Première consultation', 'Diagnostic hypertension légère'),
   
   -- Rendez-vous pour Kwame Asante (b2c3d4e5-f6a7-4890-b234-567890bcdef1)
-  ('b4c5d6e7-f8a9-4012-b456-789012b1512d'::UUID, 'b2c3d4e5-f6a7-4890-b234-567890bcdef1'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-08 09:30:00', '2025-07-08 10:00:00', 'scheduled', 'Contrôle diabète', 'Surveillance glycémie et HbA1c'),
-  ('c5d6e7f8-a9b0-4123-c567-890123c1623e'::UUID, 'b2c3d4e5-f6a7-4890-b234-567890bcdef1'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-22 14:00:00', '2025-07-22 14:30:00', 'confirmed', 'Suivi podologique', 'Examen des pieds - prévention complications'),
-  ('d6e7f8a9-b0c1-4234-d678-901234d1734f'::UUID, 'b2c3d4e5-f6a7-4890-b234-567890bcdef1'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-06-10 11:30:00', '2025-06-10 12:00:00', 'completed', 'Bilan trimestriel', 'Diabète bien équilibré'),
+  ('b4c5d6e7-f8a9-4012-b456-789012b1512d'::UUID, 'b2c3d4e5-f6a7-4890-b234-567890bcdef1'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-08 09:30:00', '2025-07-08 10:00:00', 'SCHEDULED', 'Contrôle diabète', 'Surveillance glycémie et HbA1c'),
+  ('c5d6e7f8-a9b0-4123-c567-890123c1623e'::UUID, 'b2c3d4e5-f6a7-4890-b234-567890bcdef1'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-22 14:00:00', '2025-07-22 14:30:00', 'CONFIRMED', 'Suivi podologique', 'Examen des pieds - prévention complications'),
+  ('d6e7f8a9-b0c1-4234-d678-901234d1734f'::UUID, 'b2c3d4e5-f6a7-4890-b234-567890bcdef1'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-06-10 11:30:00', '2025-06-10 12:00:00', 'COMPLETED', 'Bilan trimestriel', 'Diabète bien équilibré'),
   
   -- Rendez-vous pour Li Wei (c3d4e5f6-a7b8-4901-c345-678901cdef12)
-  ('e7f8a9b0-c1d2-4345-e789-012345e18450'::UUID, 'c3d4e5f6-a7b8-4901-c345-678901cdef12'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-10 08:00:00', '2025-07-10 08:30:00', 'scheduled', 'Consultation allergologie', 'Test allergie nouveaux médicaments'),
-  ('f8a9b0c1-d2e3-4456-f890-123456f19561'::UUID, 'c3d4e5f6-a7b8-4901-c345-678901cdef12'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-28 16:30:00', '2025-07-28 17:00:00', 'scheduled', 'Suivi gynécologique', 'Consultation de routine annuelle'),
-  ('a9b0c1d2-e3f4-4567-a901-234567a10672'::UUID, 'c3d4e5f6-a7b8-4901-c345-678901cdef12'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-06-05 13:00:00', '2025-06-05 13:30:00', 'completed', 'Urgence allergie', 'Réaction allergique médicamenteuse - traitée'),
+  ('e7f8a9b0-c1d2-4345-e789-012345e18450'::UUID, 'c3d4e5f6-a7b8-4901-c345-678901cdef12'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-10 08:00:00', '2025-07-10 08:30:00', 'SCHEDULED', 'Consultation allergologie', 'Test allergie nouveaux médicaments'),
+  ('f8a9b0c1-d2e3-4456-f890-123456f19561'::UUID, 'c3d4e5f6-a7b8-4901-c345-678901cdef12'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-28 16:30:00', '2025-07-28 17:00:00', 'SCHEDULED', 'Suivi gynécologique', 'Consultation de routine annuelle'),
+  ('a9b0c1d2-e3f4-4567-a901-234567a10672'::UUID, 'c3d4e5f6-a7b8-4901-c345-678901cdef12'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-06-05 13:00:00', '2025-06-05 13:30:00', 'COMPLETED', 'Urgence allergie', 'Réaction allergique médicamenteuse - traitée'),
   
   -- Rendez-vous pour Fatou Diallo (d4e5f6a7-b8c9-4012-d456-789012def123)
-  ('b0c1d2e3-f4a5-4678-b012-345678b11783'::UUID, 'd4e5f6a7-b8c9-4012-d456-789012def123'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-12 17:00:00', '2025-07-12 17:30:00', 'confirmed', 'Médecine du sport', 'Bilan cardiologique pour compétition'),
-  ('c1d2e3f4-a5b6-4789-c123-456789c12894'::UUID, 'd4e5f6a7-b8c9-4012-d456-789012def123'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-30 10:00:00', '2025-07-30 10:30:00', 'scheduled', 'Vaccination voyage', 'Préparation voyage Asie du Sud-Est'),
-  ('d2e3f4a5-b6c7-4890-d234-567890d139a5'::UUID, 'd4e5f6a7-b8c9-4012-d456-789012def123'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-06-25 12:00:00', '2025-06-25 12:30:00', 'completed', 'Visite médicale', 'Certificat médical sport obtenu');
+  ('b0c1d2e3-f4a5-4678-b012-345678b11783'::UUID, 'd4e5f6a7-b8c9-4012-d456-789012def123'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-07-12 17:00:00', '2025-07-12 17:30:00', 'CONFIRMED', 'Médecine du sport', 'Bilan cardiologique pour compétition'),
+  ('c1d2e3f4-a5b6-4789-c123-456789c12894'::UUID, 'd4e5f6a7-b8c9-4012-d456-789012def123'::UUID, '11111111-1111-1111-1111-111111111111'::UUID, '2025-07-30 10:00:00', '2025-07-30 10:30:00', 'SCHEDULED', 'Vaccination voyage', 'Préparation voyage Asie du Sud-Est'),
+  ('d2e3f4a5-b6c7-4890-d234-567890d139a5'::UUID, 'd4e5f6a7-b8c9-4012-d456-789012def123'::UUID, '22222222-2222-2222-2222-222222222222'::UUID, '2025-06-25 12:00:00', '2025-06-25 12:30:00', 'COMPLETED', 'Visite médicale', 'Certificat médical sport obtenu');
 -- Vérification de l'installation
 DO $$
 BEGIN

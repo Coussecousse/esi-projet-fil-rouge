@@ -10,11 +10,11 @@ from shared.infrastructure.database.connection import Base
 
 class AppointmentStatus(str, enum.Enum):
     """Énumération des statuts de rendez-vous"""
-    SCHEDULED = "scheduled"
-    CONFIRMED = "confirmed"
-    CANCELLED = "cancelled"
-    COMPLETED = "completed"
-    MISSED = "missed"
+    SCHEDULED = "SCHEDULED"
+    CONFIRMED = "CONFIRMED"
+    CANCELLED = "CANCELLED"
+    COMPLETED = "COMPLETED"
+    MISSED = "MISSED"
 
 class AppointmentModel(Base):
     """Modèle SQLAlchemy pour la table des rendez-vous"""
