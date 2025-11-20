@@ -36,10 +36,6 @@ class Container(containers.DeclarativeContainer):
     
     config = providers.Configuration()
     
-    # Configuration du container depuis les settings
-    config.database_url.from_value(providers.Factory(lambda s: s.get_database_url(), settings))
-    config.environment.from_value(providers.Factory(lambda s: s.server.environment, settings))
-    
     # Log sécurisé de la configuration
     def _log_database_config():
         settings_instance = get_settings()
@@ -91,17 +87,7 @@ class Container(containers.DeclarativeContainer):
     id_generator = providers.Factory(UuidGenerator)
     authenticator = providers.Factory(BasicAuthenticator)
     
-    # Services d'application
-    auth_service = providers.Factory(
-        AuthenticationService,
-        user_repository=user_repository
-    )
-    
-    # Services du domaine
-    patient_service = providers.Factory(PatientService)
-    appointment_service = providers.Factory(AppointmentService)
-    
-    # Adaptateurs secondaires - Repositories
+    # Adaptateurs secondaires - Repositories (doivent être définis avant les services qui les utilisent)
 
     # Pour production :
     user_repository = providers.Factory(
@@ -118,6 +104,16 @@ class Container(containers.DeclarativeContainer):
         PostgresAppointmentRepository,
         session_factory=async_session_factory
     )
+    
+    # Services d'application
+    auth_service = providers.Factory(
+        AuthenticationService,
+        user_repository=user_repository
+    )
+    
+    # Services du domaine
+    patient_service = providers.Factory(PatientService)
+    appointment_service = providers.Factory(AppointmentService)
     
     # Repositories en mémoire pour les tests
     user_repository_in_memory = providers.Singleton(InMemoryUserRepository)
