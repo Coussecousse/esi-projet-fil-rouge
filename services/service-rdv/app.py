@@ -85,9 +85,11 @@ if __name__ == '__main__':
     
     logger.info(f"Starting Service RDV on port {port}")
     logger.info(f"MongoDB URL: {MONGODB_URL}")
+    logger.info(f"Environment: {'development' if debug else 'production'}")
     
     app.run(
         host='0.0.0.0',
         port=port,
-        debug=debug
+        debug=debug,
+        threaded=True
     )

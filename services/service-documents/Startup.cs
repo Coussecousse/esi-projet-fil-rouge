@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using System;
+using System.Text.Json;
 
 namespace ServiceDocuments
 {
@@ -82,13 +83,14 @@ namespace ServiceDocuments
                 // Root endpoint
                 endpoints.MapGet("/", async context =>
                 {
-                    await context.Response.WriteAsJsonAsync(new
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(new
                     {
                         service = "documents-service",
                         version = "1.0.0",
                         status = "healthy",
                         timestamp = DateTime.UtcNow
-                    });
+                    }));
                 });
             });
         }

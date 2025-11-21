@@ -93,3 +93,15 @@ htmlcov/
 TODO.md
 TODO.txt
 NOTES.md
+
+# Secrets (HDS Compliance - NEVER COMMIT)
+secrets/
+*.txt
+!secrets/README.md
+
+# Course materials (personal)
+COURSE_*.md
+*_GUIDE.md
+*_COMPLETE.md
+*_ARCHITECTURE.md
+*_DEPLOYMENT.md

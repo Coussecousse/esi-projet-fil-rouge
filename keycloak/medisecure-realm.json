@@ -1,0 +1,185 @@
+{
+  "realm": "medisecure",
+  "enabled": true,
+  "displayName": "MediSecure",
+  "displayNameHtml": "<b>MediSecure</b> - Healthcare Management System",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "clients": [
+    {
+      "clientId": "service-rdv",
+      "name": "Service RDV",
+      "description": "Microservice de gestion des rendez-vous",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "CHANGE_ME_RDV_SECRET",
+      "redirectUris": [
+        "http://localhost:8001/*",
+        "http://service-rdv:5000/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true
+    },
+    {
+      "clientId": "service-patient",
+      "name": "Service Patient",
+      "description": "Microservice de gestion des patients",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "CHANGE_ME_PATIENT_SECRET",
+      "redirectUris": [
+        "http://localhost:8002/*",
+        "http://service-patient:8000/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "service-documents",
+      "name": "Service Documents",
+      "description": "Microservice de gestion des documents",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "CHANGE_ME_DOCUMENTS_SECRET",
+      "redirectUris": [
+        "http://localhost:8003/*",
+        "http://service-documents:5000/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "service-facturation",
+      "name": "Service Facturation",
+      "description": "Microservice de gestion de la facturation",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "CHANGE_ME_FACTURATION_SECRET",
+      "redirectUris": [
+        "http://localhost:8004/*",
+        "http://service-facturation:8000/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "medisecure-frontend",
+      "name": "MediSecure Frontend",
+      "description": "Application web React",
+      "enabled": true,
+      "publicClient": true,
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://localhost/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Administrateur système"
+      },
+      {
+        "name": "doctor",
+        "description": "Médecin"
+      },
+      {
+        "name": "nurse",
+        "description": "Infirmier/Infirmière"
+      },
+      {
+        "name": "receptionist",
+        "description": "Réceptionniste"
+      },
+      {
+        "name": "patient",
+        "description": "Patient"
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "MediSecure",
+      "email": "admin@medisecure.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Admin123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ]
+    },
+    {
+      "username": "doctor1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "doctor@medisecure.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Doctor123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "doctor"
+      ]
+    }
+  ]
+}

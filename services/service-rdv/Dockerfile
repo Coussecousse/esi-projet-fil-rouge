@@ -5,6 +5,7 @@ WORKDIR /app
 # Installer les dépendances système
 RUN apt-get update && apt-get install -y \
     gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copier les requirements et installer les dépendances Python
@@ -22,5 +23,5 @@ ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
 ENV PORT=5000
 
-# Démarrer l'application avec Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "60", "app:app"]
+# Démarrer l'application avec Python directement (plus simple pour le dev)
+CMD ["python", "app.py"]

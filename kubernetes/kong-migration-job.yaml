@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kong-migration
+  namespace: medisecure
+spec:
+  template:
+    metadata:
+      labels:
+        app: kong-migration
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: kong-migration
+        image: kong:0.14.1-centos
+        env:
+        - name: KONG_DATABASE
+          value: postgres
+        - name: KONG_PG_HOST
+          value: kong-db
+        - name: KONG_PG_DATABASE
+          value: kong
+        - name: KONG_PG_USER
+          valueFrom:
+            secretKeyRef:
+              name: kong-secrets
+              key: db-username
+        - name: KONG_PG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: kong-secrets
+              key: db-password
+        command: [ "kong", "migrations", "bootstrap" ]
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"

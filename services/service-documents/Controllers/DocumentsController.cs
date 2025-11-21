@@ -17,7 +17,7 @@ namespace ServiceDocuments.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetDocuments([FromQuery] string patientId = null)
+        public IActionResult GetDocuments([FromQuery] string patientId = null)
         {
             _logger.LogInformation($"Getting documents for patient: {patientId}");
             
@@ -30,7 +30,7 @@ namespace ServiceDocuments.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UploadDocument()
+        public IActionResult UploadDocument()
         {
             _logger.LogInformation("Uploading document");
             
@@ -43,7 +43,7 @@ namespace ServiceDocuments.Controllers
         }
 
         [HttpGet("{documentId}")]
-        public async Task<IActionResult> GetDocument(string documentId)
+        public IActionResult GetDocument(string documentId)
         {
             _logger.LogInformation($"Getting document: {documentId}");
             
@@ -58,7 +58,7 @@ namespace ServiceDocuments.Controllers
         }
 
         [HttpDelete("{documentId}")]
-        public async Task<IActionResult> DeleteDocument(string documentId)
+        public IActionResult DeleteDocument(string documentId)
         {
             _logger.LogInformation($"Deleting document: {documentId}");
             

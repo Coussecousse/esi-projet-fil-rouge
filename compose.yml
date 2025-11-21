@@ -72,7 +72,7 @@ services:
       MYSQL_USER: mariadb_user
       MYSQL_PASSWORD: mariadb_password
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
     healthcheck:
@@ -121,6 +121,148 @@ services:
     networks:
       - medisecure-network
 
+  # Keycloak - Gestion des identités et des accès (IAM)
+  medisecure-keycloak:
+    image: quay.io/keycloak/keycloak:15.0.2
+    container_name: medisecure-keycloak
+    environment:
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin
+      DB_VENDOR: postgres
+      DB_ADDR: medisecure-keycloak-db
+      DB_DATABASE: keycloak
+      DB_USER: keycloak_user
+      DB_PASSWORD: keycloak_password
+      DB_SCHEMA: public
+      KEYCLOAK_FRONTEND_URL: http://localhost:8080/auth
+      PROXY_ADDRESS_FORWARDING: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      medisecure-keycloak-db:
+        condition: service_healthy
+    networks:
+      - medisecure-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/auth/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # PostgreSQL pour Keycloak (schéma séparé)
+  medisecure-keycloak-db:
+    image: postgres:13
+    container_name: medisecure-keycloak-db
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak_user
+      POSTGRES_PASSWORD: keycloak_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak_user -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medisecure-network
+
+  # Kong Database - PostgreSQL pour Kong
+  kong-database:
+    image: postgres:13
+    container_name: kong-database
+    environment:
+      POSTGRES_DB: kong
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: kong_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - kong_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kong -d kong"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medisecure-network
+
+  # Konga Database - PostgreSQL 11 for Konga compatibility
+  konga-database:
+    image: postgres:11
+    container_name: konga-database
+    environment:
+      POSTGRES_DB: konga
+      POSTGRES_USER: konga
+      POSTGRES_PASSWORD: konga_password
+    ports:
+      - "5435:5432"
+    volumes:
+      - konga_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U konga -d konga"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medisecure-network
+
+  # Kong Migration - Initialisation de la base de données Kong
+  kong-migration:
+    image: kong:0.14.1-centos
+    container_name: kong-migration
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-database
+      KONG_PG_DATABASE: kong
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong_password
+    command: kong migrations up
+    depends_on:
+      kong-database:
+        condition: service_healthy
+    networks:
+      - medisecure-network
+    restart: on-failure
+
+  # Kong API Gateway
+  kong:
+    image: kong:0.14.1-centos
+    container_name: kong
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-database
+      KONG_PG_DATABASE: kong
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong_password
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+    ports:
+      - "8000:8000"  # Proxy HTTP
+      - "8443:8443"  # Proxy HTTPS
+      - "8888:8001"  # Admin API HTTP 
+      - "8444:8444"  # Admin API HTTPS
+    depends_on:
+      kong-database:
+        condition: service_healthy
+      kong-migration:
+        condition: service_completed_successfully
+    networks:
+      - medisecure-network
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
   # HAProxy - Load Balancer et répartition de charge
   medisecure-haproxy:
     image: haproxy:2.4
@@ -159,6 +301,9 @@ services:
       MONGODB_URL: mongodb://mongo_admin:mongo_password@medisecure-mongodb:27017/medisecure_appointments?authSource=admin
       RABBITMQ_URL: amqp://rabbitmq_user:rabbitmq_password@medisecure-rabbitmq:5672/medisecure
       REDIS_URL: redis://:redis_password@medisecure-redis:6379/0
+      KEYCLOAK_URL: http://medisecure-keycloak:8080/auth
+      KEYCLOAK_REALM: medisecure
+      KEYCLOAK_CLIENT_ID: service-rdv
       FLASK_ENV: production
       PORT: 5000
     ports:
@@ -169,6 +314,8 @@ services:
       medisecure-rabbitmq:
         condition: service_healthy
       medisecure-redis:
+        condition: service_healthy
+      medisecure-keycloak:
         condition: service_healthy
     networks:
       - medisecure-network
@@ -190,6 +337,9 @@ services:
       DB_HOST: medisecure-db
       DB_PORT: 5432
       REDIS_URL: redis://:redis_password@medisecure-redis:6379/1
+      KEYCLOAK_URL: http://medisecure-keycloak:8080/auth
+      KEYCLOAK_REALM: medisecure
+      KEYCLOAK_CLIENT_ID: service-patient
       DJANGO_SECRET_KEY: django-secret-key-change-in-production
       DJANGO_ALLOWED_HOSTS: "*"
       DJANGO_DEBUG: "False"
@@ -199,6 +349,8 @@ services:
       medisecure-db:
         condition: service_healthy
       medisecure-redis:
+        condition: service_healthy
+      medisecure-keycloak:
         condition: service_healthy
     networks:
       - medisecure-network
@@ -218,12 +370,17 @@ services:
       MinIO__AccessKey: minio_admin
       MinIO__SecretKey: minio_password
       MinIO__BucketName: medisecure-documents
+      Keycloak__Url: http://medisecure-keycloak:8080/auth
+      Keycloak__Realm: medisecure
+      Keycloak__ClientId: service-documents
       ASPNETCORE_URLS: http://+:5000
       ASPNETCORE_ENVIRONMENT: Production
     ports:
       - "8003:5000"
     depends_on:
       medisecure-minio:
+        condition: service_healthy
+      medisecure-keycloak:
         condition: service_healthy
     networks:
       - medisecure-network
@@ -242,6 +399,9 @@ services:
       MARIADB_URL: mysql://mariadb_user:mariadb_password@medisecure-mariadb:3306/medisecure_billing
       REDIS_URL: redis://:redis_password@medisecure-redis:6379/2
       RABBITMQ_URL: amqp://rabbitmq_user:rabbitmq_password@medisecure-rabbitmq:5672/medisecure
+      KEYCLOAK_URL: http://medisecure-keycloak:8080/auth
+      KEYCLOAK_REALM: medisecure
+      KEYCLOAK_CLIENT_ID: service-facturation
       PORT: 8000
       ENVIRONMENT: production
     ports:
@@ -252,6 +412,8 @@ services:
       medisecure-redis:
         condition: service_healthy
       medisecure-rabbitmq:
+        condition: service_healthy
+      medisecure-keycloak:
         condition: service_healthy
     networks:
       - medisecure-network
@@ -343,3 +505,6 @@ volumes:
   rabbitmq_data:
   redis_data:
   pgadmin_data:
+  keycloak_db_data:
+  kong_db_data:
+  konga_db_data:
