@@ -88,3 +88,8 @@ htmlcov/
 # Temporary files
 .tmp/
 .temp/
+
+# TODO files (never commit personal TODOs)
+TODO.md
+TODO.txt
+NOTES.md

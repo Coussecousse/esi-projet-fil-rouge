@@ -1,11 +1,11 @@
 # medisecure-backend/docker-compose.yml
 services:
-  # Base de données PostgreSQL
+  # Base de données PostgreSQL - Service Patient
   medisecure-db:
-    image: postgres:15-alpine
+    image: postgres:13
     container_name: medisecure-db
     environment:
-      POSTGRES_DB: medisecure
+      POSTGRES_DB: medisecure_patients
       POSTGRES_USER: medisecure_user
       POSTGRES_PASSWORD: medisecure_password
     ports:
@@ -14,7 +14,130 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./medisecure-backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U medisecure_user -d medisecure"]
+      test: ["CMD-SHELL", "pg_isready -U medisecure_user -d medisecure_patients"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medisecure-network
+
+  # MongoDB - Service RDV (Rendez-vous)
+  medisecure-mongodb:
+    image: mongo:4.4
+    container_name: medisecure-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_admin
+      MONGO_INITDB_ROOT_PASSWORD: mongo_password
+      MONGO_INITDB_DATABASE: medisecure_appointments
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medisecure-network
+
+  # MinIO - Stockage d'objets pour les documents
+  medisecure-minio:
+    image: minio/minio:latest
+    container_name: medisecure-minio
+    environment:
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: minio_password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medisecure-network
+
+  # MariaDB - Service Facturation
+  medisecure-mariadb:
+    image: mariadb:10.5
+    container_name: medisecure-mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: mariadb_root_password
+      MYSQL_DATABASE: medisecure_billing
+      MYSQL_USER: mariadb_user
+      MYSQL_PASSWORD: mariadb_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pmariadb_root_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medisecure-network
+
+  # RabbitMQ - Gestion des files d'attente (messagerie asynchrone)
+  medisecure-rabbitmq:
+    image: rabbitmq:3.8-management
+    container_name: medisecure-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbitmq_user
+      RABBITMQ_DEFAULT_PASS: rabbitmq_password
+      RABBITMQ_DEFAULT_VHOST: medisecure
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medisecure-network
+
+  # Redis - Cache et stockage en mémoire rapide
+  medisecure-redis:
+    image: redis:6.0-alpine
+    container_name: medisecure-redis
+    command: redis-server --requirepass redis_password --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medisecure-network
+
+  # HAProxy - Load Balancer et répartition de charge
+  medisecure-haproxy:
+    image: haproxy:2.4
+    container_name: medisecure-haproxy
+    ports:
+      - "80:80"     # HTTP
+      - "443:443"   # HTTPS
+      - "8404:8404" # Stats page
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - medisecure-backend
+      - medisecure-frontend
+    networks:
+      - medisecure-network
+    healthcheck:
+      test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,7 +148,22 @@ services:
       context: ./medisecure-backend/
     container_name: medisecure-backend
     environment:
-      DATABASE_URL: postgresql://medisecure_user:medisecure_password@medisecure-db:5432/medisecure
+      # PostgreSQL - Service Patient
+      DATABASE_URL: postgresql://medisecure_user:medisecure_password@medisecure-db:5432/medisecure_patients
+      # MongoDB - Service RDV
+      MONGODB_URL: mongodb://mongo_admin:mongo_password@medisecure-mongodb:27017/medisecure_appointments?authSource=admin
+      # MinIO - Stockage documents
+      MINIO_ENDPOINT: medisecure-minio:9000
+      MINIO_ACCESS_KEY: minio_admin
+      MINIO_SECRET_KEY: minio_password
+      MINIO_BUCKET_NAME: medisecure-documents
+      # MariaDB - Service Facturation
+      MARIADB_URL: mysql://mariadb_user:mariadb_password@medisecure-mariadb:3306/medisecure_billing
+      # RabbitMQ - Message Queue
+      RABBITMQ_URL: amqp://rabbitmq_user:rabbitmq_password@medisecure-rabbitmq:5672/medisecure
+      # Redis - Cache
+      REDIS_URL: redis://:redis_password@medisecure-redis:6379/0
+      # JWT Configuration
       SECRET_KEY: your-secret-key-here-change-in-production
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
@@ -34,9 +172,21 @@ services:
     depends_on:
       medisecure-db:
         condition: service_healthy
+      medisecure-mongodb:
+        condition: service_healthy
+      medisecure-minio:
+        condition: service_healthy
+      medisecure-mariadb:
+        condition: service_healthy
+      medisecure-rabbitmq:
+        condition: service_healthy
+      medisecure-redis:
+        condition: service_healthy
     volumes:
       - ./medisecure-backend:/app
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - medisecure-network
 
   # Frontend React
   medisecure-frontend:
@@ -52,8 +202,10 @@ services:
       - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:8000/api
+    networks:
+      - medisecure-network
 
-  # PgAdmin (optionnel, pour la gestion de la base de données)
+  # PgAdmin (optionnel, pour la gestion de PostgreSQL)
   medisecure-pgadmin:
     image: dpage/pgadmin4:latest
     container_name: medisecure-pgadmin
@@ -67,7 +219,51 @@ services:
       - medisecure-db
     volumes:
       - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - medisecure-network
+
+  # Mongo Express (optionnel, pour la gestion de MongoDB)
+  medisecure-mongo-express:
+    image: mongo-express:latest
+    container_name: medisecure-mongo-express
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: mongo_admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: mongo_password
+      ME_CONFIG_MONGODB_URL: mongodb://mongo_admin:mongo_password@medisecure-mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+    ports:
+      - "8081:8081"
+    depends_on:
+      - medisecure-mongodb
+    networks:
+      - medisecure-network
+
+  # phpMyAdmin (optionnel, pour la gestion de MariaDB)
+  medisecure-phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: medisecure-phpmyadmin
+    environment:
+      PMA_HOST: medisecure-mariadb
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: mariadb_root_password
+    ports:
+      - "8082:80"
+    depends_on:
+      - medisecure-mariadb
+    networks:
+      - medisecure-network
+
+networks:
+  medisecure-network:
+    driver: bridge
 
 volumes:
   postgres_data:
+  mongodb_data:
+  minio_data:
+  mariadb_data:
+  rabbitmq_data:
+  redis_data:
   pgadmin_data:

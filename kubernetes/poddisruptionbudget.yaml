@@ -1,0 +1,79 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: backend-pdb
+spec:
+  minAvailable: 2  # Toujours avoir au moins 2 pods backend disponibles
+  selector:
+    matchLabels:
+      app: backend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend-pdb
+spec:
+  minAvailable: 2  # Toujours avoir au moins 2 pods frontend disponibles
+  selector:
+    matchLabels:
+      app: frontend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mongodb-pdb
+spec:
+  minAvailable: 2  # MongoDB replica set avec au moins 2 membres
+  selector:
+    matchLabels:
+      app: mongodb
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: minio-pdb
+spec:
+  minAvailable: 3  # MinIO distribué avec au moins 3 nodes
+  selector:
+    matchLabels:
+      app: minio
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mariadb-pdb
+spec:
+  minAvailable: 2  # MariaDB avec au moins 2 instances
+  selector:
+    matchLabels:
+      app: mariadb
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rabbitmq-pdb
+spec:
+  minAvailable: 2  # RabbitMQ cluster avec au moins 2 nodes
+  selector:
+    matchLabels:
+      app: rabbitmq
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-pdb
+spec:
+  minAvailable: 2  # Redis avec au moins 2 instances
+  selector:
+    matchLabels:
+      app: redis
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: haproxy-pdb
+spec:
+  minAvailable: 1  # HAProxy avec au moins 1 instance
+  selector:
+    matchLabels:
+      app: haproxy
