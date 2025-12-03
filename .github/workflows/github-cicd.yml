@@ -159,6 +159,45 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Setup Server (First Time)
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
+          script: |
+            # Install Docker if not present
+            if ! command -v docker &> /dev/null; then
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sudo sh get-docker.sh
+              sudo usermod -aG docker ubuntu
+              rm get-docker.sh
+            fi
+            
+            # Install Docker Compose if not present
+            if ! command -v docker-compose &> /dev/null; then
+              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+            fi
+            
+            # Setup project directory
+            sudo mkdir -p /opt/medisecure
+            sudo chown ubuntu:ubuntu /opt/medisecure
+            
+            # Clone or update repository
+            cd /opt/medisecure
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/Coussecousse/esi-projet-fil-rouge.git .
+            fi
+            git fetch origin
+            git checkout develop
+            git pull origin develop
+            
+            # Make scripts executable
+            chmod +x *.sh 2>/dev/null || true
+            chmod +x kong/configure-kong.sh 2>/dev/null || true
+      
       - name: Deploy to Dev Server
         uses: appleboy/ssh-action@v1.0.0
         with:
