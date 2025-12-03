@@ -154,10 +154,14 @@ jobs:
     if: github.ref == 'refs/heads/develop'
     environment:
       name: development
-      url: http://dev.medisecure.example.com
-    
+
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Test SSH Connection
+        run: |
+          echo "Testing connectivity to ${{ secrets.DEV_HOST }}:22"
+          timeout 10 bash -c "cat < /dev/null > /dev/tcp/${{ secrets.DEV_HOST }}/22" && echo "✓ Port 22 is accessible" || (echo "✗ Port 22 is NOT accessible - check AWS Security Group" && exit 1)
       
       # - name: Setup Server (First Time)
       #   uses: appleboy/ssh-action@v1.0.0
@@ -214,12 +218,15 @@ jobs:
       #       echo "=== Setup complete ==="
       
       - name: Deploy to Dev Server
+        id: deploy
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DEV_HOST }}
           username: ${{ secrets.DEV_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
           passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
+          timeout: 30s
+          command_timeout: 10m
           script: |
             cd /opt/medisecure
             docker-compose -f compose.yml pull
@@ -229,9 +236,10 @@ jobs:
             docker-compose -f compose.yml ps
       
       - name: Health Check
+        if: steps.deploy.outcome == 'success'
         run: |
           sleep 30
-          curl -f http://${{ secrets.DEV_HOST }}:8000/api/appointments
+          curl -f http://${{ secrets.DEV_HOST }}:8000/api/appointments || exit 1
 
   # ============================================
   # STAGE 4: DEPLOY STAGING
@@ -243,7 +251,6 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: staging
-      url: http://staging.medisecure.example.com
     
     steps:
       - uses: actions/checkout@v4
@@ -283,7 +290,6 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
     environment:
       name: production
-      url: https://medisecure.example.com
     
     steps:
       - uses: actions/checkout@v4
