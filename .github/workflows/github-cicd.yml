@@ -154,7 +154,7 @@ jobs:
     if: github.ref == 'refs/heads/develop'
     environment:
       name: development
-      url: http://${{ secrets.DEV_HOST }}:8000
+      url: http://dev.medisecure.example.com
     
     steps:
       - uses: actions/checkout@v4
@@ -243,7 +243,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: staging
-      url: http://${{ secrets.STAGING_HOST }}:8000
+      url: http://staging.medisecure.example.com
     
     steps:
       - uses: actions/checkout@v4
@@ -283,7 +283,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
     environment:
       name: production
-      url: https://${{ secrets.PROD_HOST }}:8000
+      url: https://medisecure.example.com
     
     steps:
       - uses: actions/checkout@v4
