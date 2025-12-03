@@ -21,15 +21,16 @@ COPY . .
 RUN python manage.py collectstatic --noinput || true
 
 # Exposer le port
-EXPOSE 8000
+EXPOSE 8001
 
 # Variables d'environnement par défaut
 ENV DJANGO_SETTINGS_MODULE=config.settings
 ENV PYTHONUNBUFFERED=1
 
-# Script de démarrage
+# Copier et configurer le script de démarrage
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
+# Démarrage
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "60", "config.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8001", "--workers", "2", "--timeout", "60", "config.wsgi:application"]

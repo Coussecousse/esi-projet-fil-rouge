@@ -1,22 +1,26 @@
-FROM mcr.microsoft.com/dotnet/sdk:3.1 AS build
-WORKDIR /src
+FROM python:3.11-slim
 
-# Copy csproj and restore dependencies
-COPY *.csproj ./
-RUN dotnet restore
-
-# Copy everything else and build
-COPY . ./
-RUN dotnet publish -c Release -o /app/publish
-
-# Build runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:3.1
 WORKDIR /app
-COPY --from=build /app/publish .
 
-EXPOSE 5000
+# Installer les dépendances système
+RUN apt-get update && apt-get install -y \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-ENV ASPNETCORE_URLS=http://+:5000
-ENV ASPNETCORE_ENVIRONMENT=Production
+# Copier les requirements et installer les dépendances Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-ENTRYPOINT ["dotnet", "service-documents.dll"]
+# Copier le code de l'application
+COPY . .
+
+# Exposer le port
+EXPOSE 8003
+
+# Variables d'environnement par défaut
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8003
+
+# Démarrer l'application avec Uvicorn
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003", "--workers", "2"]

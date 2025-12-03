@@ -16,12 +16,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Exposer le port
-EXPOSE 5000
+EXPOSE 8002
 
 # Variables d'environnement par défaut
 ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
-ENV PORT=5000
+ENV PORT=8002
 
 # Démarrer l'application avec Python directement (plus simple pour le dev)
 CMD ["python", "app.py"]
