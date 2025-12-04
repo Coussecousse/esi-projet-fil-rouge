@@ -228,6 +228,23 @@ jobs:
             
       #       echo "=== Setup complete ==="
       
+      - name: Clean Docker Resources
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
+          timeout: 30s
+          command_timeout: 5m
+          script: |
+            echo "=== Disk space before cleanup ==="
+            df -h /
+            echo "=== Cleaning Docker resources ==="
+            docker system prune -f --volumes || true
+            echo "=== Disk space after cleanup ==="
+            df -h /
+      
       - name: Deploy to Dev Server
         id: deploy
         uses: appleboy/ssh-action@v1.0.0
@@ -240,10 +257,11 @@ jobs:
           command_timeout: 10m
           script: |
             cd /opt/medisecure
+            git pull origin develop || true
             docker-compose -f compose.yml pull
-            docker-compose -f compose.yml up -d
+            docker-compose -f compose.yml up -d --remove-orphans
             sleep 30
-            ./kong/configure-kong.sh
+            ./kong/configure-kong.sh || echo "Kong configuration skipped"
             docker-compose -f compose.yml ps
       
       - name: Health Check
