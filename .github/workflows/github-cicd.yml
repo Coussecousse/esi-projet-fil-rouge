@@ -235,10 +235,11 @@ jobs:
           username: ${{ secrets.DEV_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
           passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
-          timeout: 3m
+          timeout: 5m
           command_timeout: 30m
           script: |
-            cd "/opt/medisecure" || exit 1
+            set -e
+            cd "/opt/medisecure"
             git pull origin develop || true
             docker-compose -f compose.yml up -d --remove-orphans
             sleep 30
@@ -254,10 +255,11 @@ jobs:
           username: ${{ secrets.DEV_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
           passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
-          timeout: 3m
+          timeout: 5m
           command_timeout: 30m
           script: |
-            cd "/opt/medisecure" || exit 1
+            set -e
+            cd "/opt/medisecure"
             git pull origin develop || true
             docker-compose -f compose.yml up -d --remove-orphans
             sleep 30
