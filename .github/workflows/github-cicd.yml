@@ -235,7 +235,7 @@ jobs:
           username: ${{ secrets.DEV_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
           passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
-          timeout: 30s
+          timeout: 5m
           command_timeout: 5m
           script: |
             echo "=== Disk space before cleanup ==="
