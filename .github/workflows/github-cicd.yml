@@ -228,6 +228,30 @@ jobs:
             
       #       echo "=== Setup complete ==="
       
+      - name: Server Health Check
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
+          timeout: 30s
+          command_timeout: 2m
+          script: |
+            echo "=== Server Health Check ==="
+            echo "Disk Usage:"
+            df -h / | tail -1
+            echo ""
+            echo "Memory:"
+            free -h | grep Mem
+            echo ""
+            echo "Load Average:"
+            uptime
+            echo ""
+            echo "Running Containers:"
+            docker ps --format "{{.Names}}: {{.Status}}" | wc -l
+            echo "containers running"
+      
       - name: Clean Docker Resources
         uses: appleboy/ssh-action@v1.0.0
         with:
