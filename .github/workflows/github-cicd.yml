@@ -238,11 +238,11 @@ jobs:
           timeout: 3m
           command_timeout: 30m
           script: |
-            cd /opt/medisecure
+            cd "/opt/medisecure" || exit 1
             git pull origin develop || true
             docker-compose -f compose.yml up -d --remove-orphans
             sleep 30
-            ./kong/configure-kong.sh || echo "Kong configuration skipped"
+            /opt/medisecure/kong/configure-kong.sh || echo "Kong configuration skipped"
         continue-on-error: true
         id: deploy_attempt_1
       
@@ -257,11 +257,11 @@ jobs:
           timeout: 3m
           command_timeout: 30m
           script: |
-            cd /opt/medisecure
+            cd "/opt/medisecure" || exit 1
             git pull origin develop || true
             docker-compose -f compose.yml up -d --remove-orphans
             sleep 30
-            ./kong/configure-kong.sh || echo "Kong configuration skipped"
+            /opt/medisecure/kong/configure-kong.sh || echo "Kong configuration skipped"
       
       - name: Health Check
         if: steps.deploy.outcome == 'success'
