@@ -158,10 +158,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Check GitHub Actions IPs
+      - name: Debug Network Connectivity
         run: |
-          echo "GitHub Actions IP ranges that need SSH access:"
-          curl -s https://api.github.com/meta | jq -r '.actions[0:3]'
+          echo "=== Testing network connectivity ==="
+          echo "Target host: ${{ secrets.DEV_HOST }}"
+          echo "My public IP:"
+          curl -s https://api.ipify.org
+          echo ""
+          echo "Testing port 22 with nc:"
+          nc -zv -w5 ${{ secrets.DEV_HOST }} 22 || echo "Port 22 not reachable"
+          echo ""
+          echo "Testing port 22 with telnet:"
+          timeout 5 telnet ${{ secrets.DEV_HOST }} 22 || echo "Telnet failed"
+          echo ""
+          echo "Checking DNS resolution:"
+          nslookup ${{ secrets.DEV_HOST }} || echo "DNS resolution failed"
       
       # - name: Setup Server (First Time)
       #   uses: appleboy/ssh-action@v1.0.0
