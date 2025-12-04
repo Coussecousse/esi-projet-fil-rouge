@@ -229,14 +229,33 @@ jobs:
       #       echo "=== Setup complete ==="
       
       - name: Deploy to Dev Server
-        id: deploy
+      - name: Deploy to Dev Server
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DEV_HOST }}
           username: ${{ secrets.DEV_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
           passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
-          timeout: 10m
+          timeout: 3m
+          command_timeout: 30m
+          script: |
+            cd /opt/medisecure
+            git pull origin develop || true
+            docker-compose -f compose.yml up -d --remove-orphans
+            sleep 30
+            ./kong/configure-kong.sh || echo "Kong configuration skipped"
+        continue-on-error: true
+        id: deploy_attempt_1
+      
+      - name: Retry Deploy if Failed
+        if: steps.deploy_attempt_1.outcome == 'failure'
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
+          timeout: 3m
           command_timeout: 30m
           script: |
             cd /opt/medisecure
