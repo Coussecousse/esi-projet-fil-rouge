@@ -241,11 +241,13 @@ jobs:
             set -e
             cd "/opt/medisecure"
             git pull origin develop || true
-            docker-compose -f compose.yml pull || true
-            docker-compose -f compose.yml up -d --no-recreate --remove-orphans
-            sleep 10
-            docker-compose -f compose.yml restart kong || true
-            sleep 20
+            
+            # Only use pre-built images from Docker Hub, no building on server
+            echo "Starting services with existing images..."
+            docker-compose -f compose.yml up -d --no-build --remove-orphans
+            
+            # Wait and configure Kong
+            sleep 15
             /opt/medisecure/kong/configure-kong.sh || echo "Kong configuration skipped"
         continue-on-error: true
         id: deploy_attempt_1
@@ -264,11 +266,13 @@ jobs:
             set -e
             cd "/opt/medisecure"
             git pull origin develop || true
-            docker-compose -f compose.yml pull || true
-            docker-compose -f compose.yml up -d --no-recreate --remove-orphans
-            sleep 10
-            docker-compose -f compose.yml restart kong || true
-            sleep 20
+            
+            # Only use pre-built images from Docker Hub, no building on server
+            echo "Starting services with existing images..."
+            docker-compose -f compose.yml up -d --no-build --remove-orphans
+            
+            # Wait and configure Kong
+            sleep 15
             /opt/medisecure/kong/configure-kong.sh || echo "Kong configuration skipped"
       
       - name: Health Check
