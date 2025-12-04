@@ -248,17 +248,18 @@ jobs:
           username: ${{ secrets.DEV_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
           passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
-          timeout: 90s
-          command_timeout: 20m
+          timeout: 2m
+          command_timeout: 30m
           script: |
             cd /opt/medisecure
             git pull origin develop || true
-            echo "=== Pulling Docker images (this may take 10-15 minutes) ==="
-            docker-compose -f compose.yml pull --ignore-pull-failures || true
-            echo "=== Starting services ==="
-            docker-compose -f compose.yml up -d --remove-orphans
+            echo "=== Starting services (will pull images if needed) ==="
+            docker-compose -f compose.yml up -d --remove-orphans --pull always
+            echo "=== Waiting for services to start ==="
             sleep 30
+            echo "=== Configuring Kong ==="
             ./kong/configure-kong.sh || echo "Kong configuration skipped"
+            echo "=== Service Status ==="
             docker-compose -f compose.yml ps
       
       - name: Health Check
