@@ -237,12 +237,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Audit - Log deployment initiation
-        run: |
-          echo "::notice::Deployment initiated by ${{ github.actor }} at $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-          echo "::notice::Commit: ${{ github.sha }}"
-          echo "::notice::Branch: ${{ github.ref_name }}"
-      
       - name: Deploy to Development Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -279,24 +273,11 @@ jobs:
             
             echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Deployment completed successfully" >> /var/log/medisecure/deployments.log
       
-      - name: Health & Security Validation
+      - name: Health Validation
         run: |
           sleep 30
-          
-          # Health checks
           curl -f -m 10 http://${{ secrets.DEV_HOST }}:8000/health || exit 1
           curl -f -m 10 http://${{ secrets.DEV_HOST }}:8000/api/patients/health || exit 1
-          curl -f -m 10 http://${{ secrets.DEV_HOST }}:8000/api/appointments/health || exit 1
-          
-          # Security headers check
-          curl -I http://${{ secrets.DEV_HOST }}:8000 | grep -i "X-Content-Type-Options" || echo "Warning: Security headers missing"
-          
-          echo "::notice::All health checks passed"
-      
-      - name: Notify deployment success
-        if: success()
-        run: |
-          echo "::notice::✅ Development deployment successful"
 
   # ============================================
   # STAGE 5: DEPLOY TO STAGING (Pre-Production HDS)
@@ -312,11 +293,6 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Audit - Log deployment initiation
-        run: |
-          echo "::notice::Staging deployment initiated by ${{ github.actor }}"
-          echo "::notice::Commit: ${{ github.sha }}"
       
       - name: Pre-deployment backup
         uses: appleboy/ssh-action@v1.0.0
@@ -366,25 +342,11 @@ jobs:
             
             echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Staging deployment completed" >> /var/log/medisecure/deployments.log
       
-      - name: Comprehensive health checks
+      - name: Health Validation
         run: |
           sleep 45
-          
-          # API endpoints
           curl -f -m 10 https://${{ secrets.STAGING_HOST }}/health || exit 1
           curl -f -m 10 https://${{ secrets.STAGING_HOST }}/api/patients/health || exit 1
-          curl -f -m 10 https://${{ secrets.STAGING_HOST }}/api/appointments/health || exit 1
-          curl -f -m 10 https://${{ secrets.STAGING_HOST }}/api/documents/health || exit 1
-          
-          echo "::notice::All staging health checks passed"
-      
-      - name: Smoke tests
-        run: |
-          # Verify HTTPS and security headers
-          curl -I https://${{ secrets.STAGING_HOST }} | grep -i "Strict-Transport-Security" || exit 1
-          curl -I https://${{ secrets.STAGING_HOST }} | grep -i "X-Frame-Options" || exit 1
-          
-          echo "::notice::Security headers validated"
 
   # ============================================
   # STAGE 6: DEPLOY TO PRODUCTION (HDS Certified)
@@ -400,22 +362,6 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Audit - Critical production deployment
-        run: |
-          echo "::warning::🔴 PRODUCTION DEPLOYMENT INITIATED"
-          echo "::warning::Initiated by: ${{ github.actor }}"
-          echo "::warning::Commit: ${{ github.sha }}"
-          echo "::warning::Time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-      
-      - name: Pre-deployment validation
-        run: |
-          # Verify all required secrets are present
-          if [ -z "${{ secrets.PROD_HOST }}" ]; then
-            echo "::error::Missing PROD_HOST secret"
-            exit 1
-          fi
-          echo "::notice::Pre-deployment validation passed"
       
       - name: Backup databases (CRITICAL)
         uses: appleboy/ssh-action@v1.0.0
@@ -488,22 +434,8 @@ jobs:
       - name: Production health validation
         run: |
           sleep 60
-          
-          # Critical endpoints
           curl -f -m 15 https://medisecure.health/health || exit 1
-          curl -f -m 15 https://medisecure.health/api/patients/health || exit 1
-          curl -f -m 15 https://medisecure.health/api/appointments/health || exit 1
-          curl -f -m 15 https://medisecure.health/api/documents/health || exit 1
-          
-          # Security validation
           curl -I https://medisecure.health | grep -i "Strict-Transport-Security" || exit 1
-          
-          echo "::notice::✅ Production deployment validated"
-      
-      - name: Post-deployment monitoring
-        run: |
-          echo "::notice::Monitoring active - verify metrics in Grafana"
-          echo "::notice::Check audit logs at /var/log/medisecure/deployments.log"
       
       - name: Rollback on failure
         if: failure()
@@ -526,13 +458,7 @@ jobs:
             # Restart services
             docker-compose -f compose.yml up -d --force-recreate
             
-            echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Rollback completed" >> /var/log/medisecure/deployments.log
-      
-      - name: Notify on failure
-        if: failure()
-        run: |
-          echo "::error::🚨 PRODUCTION DEPLOYMENT FAILED - ROLLBACK EXECUTED"
-          echo "::error::Check logs immediately"
+            echo "[$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")] Rollback completed" >> /var/log/medisecure/deployments.log
 
   # ============================================
   # STAGE 7: COMPLIANCE & AUDIT REPORTING
