@@ -228,18 +228,6 @@ jobs:
             
       #       echo "=== Setup complete ==="
       
-      - name: Clean Docker Resources
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.DEV_USER }}
-          key: ${{ secrets.DEV_SSH_KEY }}
-          passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
-          timeout: 90s
-          command_timeout: 5m
-          script: |
-            docker system prune -f --volumes || true
-      
       - name: Deploy to Dev Server
         id: deploy
         uses: appleboy/ssh-action@v1.0.0
@@ -252,7 +240,10 @@ jobs:
           command_timeout: 30m
           script: |
             cd /opt/medisecure
+            echo "=== Updating code ==="
             git pull origin develop || true
+            echo "=== Cleaning old Docker resources ==="
+            docker system prune -f --volumes || true
             echo "=== Starting services (will pull images if needed) ==="
             docker-compose -f compose.yml up -d --remove-orphans --pull always
             echo "=== Waiting for services to start ==="
