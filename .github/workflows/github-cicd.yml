@@ -57,8 +57,8 @@ jobs:
           exit-code: 0
       
       - name: Upload SAST results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('trivy-sast-results.sarif') != ''
         with:
           sarif_file: 'trivy-sast-results.sarif'
           category: 'code-security'
@@ -127,6 +127,7 @@ jobs:
           sbom: true
       
       - name: Scan Docker image for vulnerabilities
+        id: trivy_scan
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-${{ matrix.service }}:${{ github.ref_name }}-${{ github.sha }}
@@ -134,10 +135,11 @@ jobs:
           output: 'trivy-image-${{ matrix.service }}.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: 0
+        continue-on-error: true
       
       - name: Upload image scan results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('trivy-image-${{ matrix.service }}.sarif') != ''
         with:
           sarif_file: 'trivy-image-${{ matrix.service }}.sarif'
           category: 'image-${{ matrix.service }}'
