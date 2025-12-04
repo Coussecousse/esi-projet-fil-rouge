@@ -158,10 +158,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Test SSH Connection
+      - name: Check GitHub Actions IPs
         run: |
-          echo "Testing connectivity to ${{ secrets.DEV_HOST }}:22"
-          timeout 10 bash -c "cat < /dev/null > /dev/tcp/${{ secrets.DEV_HOST }}/22" && echo "✓ Port 22 is accessible" || (echo "✗ Port 22 is NOT accessible - check AWS Security Group" && exit 1)
+          echo "GitHub Actions IP ranges that need SSH access:"
+          curl -s https://api.github.com/meta | jq -r '.actions[0:3]'
       
       # - name: Setup Server (First Time)
       #   uses: appleboy/ssh-action@v1.0.0
