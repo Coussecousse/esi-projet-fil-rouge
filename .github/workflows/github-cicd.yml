@@ -236,7 +236,7 @@ jobs:
           username: ${{ secrets.DEV_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
           passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
-          timeout: 2m
+          timeout: 10m
           command_timeout: 30m
           script: |
             cd /opt/medisecure
