@@ -254,11 +254,13 @@ jobs:
           key: ${{ secrets.DEV_SSH_KEY }}
           passphrase: ${{ secrets.DEV_SSH_PASSPHRASE }}
           timeout: 30s
-          command_timeout: 10m
+          command_timeout: 20m
           script: |
             cd /opt/medisecure
             git pull origin develop || true
-            docker-compose -f compose.yml pull
+            echo "=== Pulling Docker images (this may take 10-15 minutes) ==="
+            docker-compose -f compose.yml pull --ignore-pull-failures || true
+            echo "=== Starting services ==="
             docker-compose -f compose.yml up -d --remove-orphans
             sleep 30
             ./kong/configure-kong.sh || echo "Kong configuration skipped"
