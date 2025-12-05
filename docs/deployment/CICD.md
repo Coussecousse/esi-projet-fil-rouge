@@ -441,7 +441,7 @@ Services buildés en parallèle:
    - Git pull latest code
    - `docker-compose pull` (nouvelles images)
    - `docker-compose up -d --no-deps --force-recreate` (zero-downtime)
-   - Configuration Kong: `/opt/medisecure/kong/configure-kong.sh` (à créer)
+   - Configuration Kong: `/opt/medisecure/infrastructure/kong/configure-kong.sh` ✅
    
 2. **Audit Logging**: Logs horodatés dans `/var/log/medisecure/deployments.log`
 
@@ -456,7 +456,7 @@ Services buildés en parallèle:
 
 1. **Pre-deployment Backup**
    - Backup bases de données
-   - Script: `./scripts/backup.sh staging` (doit être créé)
+   - Script: `./scripts/backup/backup.sh staging` ✅
    - ⚠️ **À implémenter**: Script de backup automatique
    
 2. **SSH Deploy** vers serveur STAGING
@@ -476,15 +476,15 @@ Services buildés en parallèle:
 
 1. **Backup Databases (CRITICAL)**
    - Backup complet avec vérification
-   - Script: `./scripts/backup.sh production` (à créer)
-   - Vérification intégrité: `./scripts/verify-backup.sh` (à créer)
+   - Script: `./scripts/backup/backup.sh production` ✅
+   - Vérification intégrité: `./scripts/backup/verify-backup.sh` ✅
    - ⚠️ **CRITIQUE**: Ces scripts doivent être implémentés avant le premier déploiement production
    
 2. **Blue-Green Deployment**
    - Pull nouvelles images
    - Scale backend à 2 instances (nouvelle + ancienne)
    - Health check de la nouvelle instance (5 tentatives avec curl)
-   - Configuration Kong: `./kong/configure-kong.sh` (à créer)
+   - Configuration Kong: `./infrastructure/kong/configure-kong.sh` ✅
    - Scale down à 1 instance (ancienne éliminée)
    - ⚠️ **Note**: Le scaling fonctionne si votre compose.yml définit un service "backend"
    
@@ -493,7 +493,7 @@ Services buildés en parallèle:
    - Header HTTPS `Strict-Transport-Security` validé
    
 4. **Rollback automatique** (si échec):
-   - Restauration backup: `./scripts/restore-backup.sh production latest` (à créer)
+   - Restauration backup: `./scripts/backup/restore-backup.sh production latest` ✅
    - Redémarrage services: `docker-compose up -d --force-recreate`
    - Logs d'audit dans `/var/log/medisecure/deployments.log`
    - ⚠️ **CRITIQUE**: Scripts de restore doivent être testés régulièrement
@@ -672,7 +672,7 @@ Avant chaque déploiement production, vérifier:
 - [ ] Logs d'audit accessibles `/var/log/medisecure/deployments.log`
 - [ ] GitHub Security tab sans CRITICAL unresolved
 - [ ] Certificats TLS/SSL valides (staging + production)
-- [ ] **CRITIQUE**: Kong configuration script créé (`kong/configure-kong.sh`)
+- [x] **CRITIQUE**: Kong configuration script créé (`infrastructure/kong/configure-kong.sh`)
 - [ ] Health endpoints implémentés (au minimum `/health` et `/api/patients/health`)
 - [ ] Structure serveurs créée (`/opt/medisecure`, `/var/log/medisecure`)
 - [ ] User `medisecure-deploy` créé avec permissions SSH
@@ -797,7 +797,7 @@ curl http://localhost:8000/health  # Via Kong
 
 **Solutions**:
 - Implémenter endpoints `/health` dans chaque service
-- Configurer Kong routes: `./kong/configure-kong.sh`
+- Configurer Kong routes: `./infrastructure/kong/configure-kong.sh`
 - Vérifier que services sont bien `Up` et pas `Restarting`
 
 ### ❌ Production Deployment bloqué

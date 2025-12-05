@@ -266,7 +266,7 @@ jobs:
             sleep 20
             
             # Configure API Gateway
-            /opt/medisecure/kong/configure-kong.sh
+            /opt/medisecure/infrastructure/kong/configure-kong.sh
             
             # Verify health
             docker-compose ps
@@ -303,7 +303,7 @@ jobs:
           passphrase: ${{ secrets.STAGING_SSH_PASSPHRASE }}
           script: |
             cd /opt/medisecure
-            ./scripts/backup.sh staging
+            ./scripts/backup/backup.sh staging
             echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Pre-deployment backup completed" >> /var/log/medisecure/deployments.log
       
       - name: Deploy to Staging Server
@@ -335,7 +335,7 @@ jobs:
             sleep 30
             
             # Configure gateway
-            ./kong/configure-kong.sh
+            ./infrastructure/kong/configure-kong.sh
             
             # Verify deployment
             docker-compose ps
@@ -377,10 +377,10 @@ jobs:
             
             # Full backup with verification
             echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] CRITICAL: Production backup initiated" >> /var/log/medisecure/deployments.log
-            ./scripts/backup.sh production
+            ./scripts/backup/backup.sh production
             
             # Verify backup integrity
-            ./scripts/verify-backup.sh || exit 1
+            ./scripts/backup/verify-backup.sh || exit 1
             
             echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Backup verified and secured" >> /var/log/medisecure/deployments.log
       
@@ -421,7 +421,7 @@ jobs:
             done
             
             # Configure gateway
-            ./kong/configure-kong.sh
+            ./infrastructure/kong/configure-kong.sh
             
             # Scale down old instances
             docker-compose -f compose.yml up -d --scale backend=1
@@ -453,7 +453,7 @@ jobs:
             echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] ROLLBACK INITIATED" >> /var/log/medisecure/deployments.log
             
             # Restore from backup
-            ./scripts/restore-backup.sh production latest
+            ./scripts/backup/restore-backup.sh production latest
             
             # Restart services
             docker-compose -f compose.yml up -d --force-recreate
