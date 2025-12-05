@@ -18,6 +18,9 @@ on:
           - dev
           - staging
           - production
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true 
 
 env:
   REGISTRY: ghcr.io
