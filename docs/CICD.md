@@ -323,42 +323,7 @@ Ce pipeline respecte les exigences de **Hébergement de Données de Santé**:
 - ✅ **Rollback automatique**: Restauration immédiate en cas d'échec
 - ✅ **Retention 365 jours**: Rapports de conformité archivés
 
-## 🔧 Configuration Requise
 
-### Secrets GitHub
-
-Configurez dans **Settings → Secrets and variables → Actions** :
-
-**Development:**
-```
-DEV_HOST=dev.medisecure.local
-DEV_USER=deploy
-DEV_SSH_KEY=<private-key>
-```
-
-**Staging:**
-```
-STAGING_HOST=staging.medisecure.local
-STAGING_USER=deploy
-STAGING_SSH_KEY=<private-key>
-```
-
-**Production:**
-```
-PROD_HOST=medisecure.com
-PROD_USER=deploy
-PROD_SSH_KEY=<private-key>
-```
-
-### Environments GitHub
-
-Créez dans **Settings → Environments** :
-
-1. **development** - Protection: aucune
-2. **staging** - Protection: aucune
-3. **production** - Protection:
-   - ✅ Required reviewers (2 minimum)
-   - ✅ Wait timer: 5 minutes
 
 ## 🚀 Utilisation - Résumé Rapide
 
@@ -546,29 +511,18 @@ Services buildés en parallèle:
 
 ```bash
 # Build tous les services
-docker-compose -f compose.yml build
+docker compose -f compose.yml build
 
 # Démarrer l'environnement complet
-./start-microservices.sh
-# OU manuellement:
-docker-compose -f compose.yml up -d
+docker compose -f compose.yml up -d
 sleep 60
-./kong/configure-kong.sh
 
-# Vérifier les services via Kong
-curl http://localhost:8000/api/patients
-curl http://localhost:8000/api/appointments
-curl http://localhost:8000/api/documents
-curl http://localhost:8000/api/billing
-
-# Frontend
-http://localhost:3000/
-
-# Health check complet
-./test-microservices.sh
+# Vérifier les services
+curl http://localhost:8000/health
+curl http://localhost:8000/api/patients/health
 
 # Arrêter
-docker-compose -f compose.yml down
+docker compose -f compose.yml down
 ```
 
 ## 🔒 Sécurité & Permissions
@@ -663,130 +617,7 @@ Artifacts générés à chaque run:
 - Message queue metrics
 - Consumer/publisher monitoring
 
-## 🔄 Workflow Complet - Git Flow Standard
 
-### 🌿 Structure des branches
-
-```
-main          → PRODUCTION (stable, déploiement manuel)
-  ↑
-develop       → STAGING (pré-prod, déploiement auto)
-  ↑
-feature/*     → LOCAL DEV (pas de déploiement auto)
-```
-
-### 📝 Développement d'une Feature
-
-```bash
-# 1. Partir de develop (toujours à jour)
-git checkout develop
-git pull origin develop
-
-# 2. Créer branche feature
-git checkout -b feature/patient-search
-# Nommage: feature/*, bugfix/*, hotfix/*
-
-# 3. Développer et tester localement
-docker compose up -d  # Tests locaux
-# ... développement ...
-git add .
-git commit -m "feat: add patient search with filters"
-
-# 4. Push de la feature
-git push origin feature/patient-search
-
-# 5. Créer Pull Request vers develop
-# GitHub: Compare & pull request
-# Title: "feat: Patient search with filters"
-# Reviewers: Demander code review
-
-# 6. Après approbation → Merge PR
-# ⚠️ NE PAS merger directement, utiliser GitHub PR
-```
-
-### 🚀 Déploiement Development (automatique)
-
-```bash
-# Après merge de la PR feature → develop
-# Pipeline CI/CD se déclenche AUTOMATIQUEMENT
-# ✅ Build → Test → Deploy DEV
-
-# Vérifier le déploiement
-curl http://dev.medisecure.health:8000/health
-```
-
-### 📦 Release vers Staging (automatique)
-
-```bash
-# Quand plusieurs features sont prêtes et testées en DEV
-
-# 1. Créer PR: develop → main
-git checkout develop
-git pull origin develop
-# Sur GitHub: New Pull Request (develop → main)
-
-# 2. Review et validation
-# - Vérifier tests passent
-# - Vérifier security scans OK
-# - Approbation par lead dev
-
-# 3. Merge vers main
-# Pipeline CI/CD se déclenche AUTOMATIQUEMENT
-# ✅ Build → Test → Deploy STAGING
-
-# 4. Tests sur staging
-curl https://staging.medisecure.health/health
-# Tests manuels, smoke tests, etc.
-```
-
-### 🏥 Déploiement Production (MANUEL uniquement)
-
-```bash
-# ⚠️ UNIQUEMENT après validation complète sur STAGING
-
-# 1. Aller sur GitHub → Actions
-# 2. Sélectionner "MediSecure CI/CD - HDS Compliant Pipeline"
-# 3. Cliquer "Run workflow"
-# 4. Choisir:
-#    - Branch: main
-#    - Environment: production
-# 5. Attendre approbation des 2 reviewers (obligatoire)
-# 6. Pipeline exécute:
-#    - Backup automatique
-#    - Blue-green deployment
-#    - Health checks
-#    - Rollback automatique si échec
-
-# 7. Vérification post-déploiement
-curl https://medisecure.health/health
-# Monitoring Grafana, logs, etc.
-```
-
-### 🐛 Hotfix en Production (urgent)
-
-```bash
-# Pour bug critique en production
-
-# 1. Créer branche depuis main
-git checkout main
-git pull origin main
-git checkout -b hotfix/critical-security-fix
-
-# 2. Corriger le bug
-git commit -m "hotfix: fix critical security vulnerability"
-git push origin hotfix/critical-security-fix
-
-# 3. PR vers main (fast-track)
-# Review rapide mais obligatoire
-
-# 4. Merge → Deploy production (manuel)
-
-# 5. ⚠️ IMPORTANT: Merger aussi vers develop
-git checkout develop
-git merge hotfix/critical-security-fix
-git push origin develop
-# Pour éviter régression
-```
 
 ## 🎯 Optimisations Implémentées
 
