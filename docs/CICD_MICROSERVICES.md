@@ -43,6 +43,273 @@ Pipeline CI/CD professionnel conforme HDS/GDPR pour application médicale sécur
 └─────────────────────────────────────┘
 ```
 
+## ⚙️ Stratégie Git Flow - Comment ça fonctionne
+
+### 🌳 Structure des branches
+
+Votre projet utilise un **Git Flow standard** avec 3 types de branches :
+
+```
+┌─────────────────────────────────────────────────────┐
+│  feature/nom-feature  (développement isolé)         │
+│  bugfix/nom-bug       (correction de bugs)          │
+│  hotfix/urgence       (correctif production urgent) │
+└──────────────────┬──────────────────────────────────┘
+                   │ Pull Request + Code Review
+                   ↓
+┌──────────────────────────────────────────────────────┐
+│  develop  (intégration continue)                     │
+│  ✅ Déploiement automatique → DEV                    │
+└──────────────────┬───────────────────────────────────┘
+                   │ Pull Request + Validation
+                   ↓
+┌──────────────────────────────────────────────────────┐
+│  main  (code stable validé)                          │
+│  ✅ Déploiement automatique → STAGING                │
+└──────────────────┬───────────────────────────────────┘
+                   │ Workflow dispatch MANUEL
+                   ↓
+┌──────────────────────────────────────────────────────┐
+│  PRODUCTION (HDS certified)                          │
+│  ⚠️ Déploiement manuel avec approbation obligatoire  │
+└──────────────────────────────────────────────────────┘
+```
+
+### 📝 Types de branches et leur rôle
+
+#### 1️⃣ Branches éphémères (temporaires)
+
+**`feature/*`** - Nouvelles fonctionnalités
+```bash
+feature/patient-search
+feature/appointment-booking
+feature/document-upload
+```
+- ✅ Créées depuis `develop`
+- ✅ Mergées dans `develop` via Pull Request
+- ✅ Supprimées après merge
+- ❌ **PAS de déploiement automatique**
+
+**`bugfix/*`** - Corrections de bugs
+```bash
+bugfix/login-error
+bugfix/date-format
+```
+- ✅ Créées depuis `develop`
+- ✅ Workflow identique aux features
+
+**`hotfix/*`** - Correctifs urgents production
+```bash
+hotfix/security-vulnerability
+hotfix/critical-data-loss
+```
+- ⚠️ Créées depuis `main` (exception!)
+- ⚠️ Mergées dans `main` ET `develop`
+- 🚨 Utilisées uniquement en cas d'urgence production
+
+#### 2️⃣ Branches permanentes
+
+**`develop`** - Branche d'intégration
+- 🎯 Contient le code en cours de développement
+- 🔄 Reçoit les merges de toutes les features/bugfix
+- ✅ **Déploiement automatique vers DEV** à chaque push
+- 📊 Tests et validations continues
+
+**`main`** - Branche de production
+- 🎯 Contient uniquement le code stable et validé
+- 🔄 Reçoit les merges depuis `develop` (releases)
+- ✅ **Déploiement automatique vers STAGING** à chaque push
+- 🏥 Code certifié pour données de santé (HDS)
+
+### 🔄 Workflow complet étape par étape
+
+#### Scénario 1 : Développer une nouvelle fonctionnalité
+
+```bash
+# 1. Partir de develop (toujours synchroniser d'abord)
+git checkout develop
+git pull origin develop
+
+# 2. Créer votre branche de travail
+git checkout -b feature/patient-search-filters
+
+# 3. Développer et tester localement
+# ... votre code ...
+docker compose up -d  # Tests locaux
+
+# 4. Commiter régulièrement (commits atomiques)
+git add .
+git commit -m "feat: add patient name filter"
+git commit -m "feat: add date range filter"
+git commit -m "test: add unit tests for filters"
+
+# 5. Pousser votre branche sur GitHub
+git push origin feature/patient-search-filters
+
+# 6. Créer une Pull Request sur GitHub
+# - Aller sur https://github.com/Coussecousse/esi-projet-fil-rouge
+# - Bouton "Compare & pull request"
+# - Base: develop ← Compare: feature/patient-search-filters
+# - Titre descriptif: "feat: Patient search with name and date filters"
+# - Description détaillée des changements
+# - Demander un reviewer (collègue)
+
+# 7. Code Review
+# - Le reviewer commente, demande des modifications
+# - Vous poussez des corrections sur la même branche
+git commit -m "fix: address review comments"
+git push origin feature/patient-search-filters
+# La PR se met à jour automatiquement
+
+# 8. Après approbation → Merge la PR
+# - Sur GitHub: "Merge pull request" (squash ou merge commit)
+# - ✅ Le pipeline CI/CD se déclenche automatiquement
+# - ✅ Build → Test → Deploy DEV
+
+# 9. Vérifier le déploiement
+curl http://dev.medisecure.health:8000/health
+# Tester votre feature en DEV
+
+# 10. Nettoyer votre branche locale
+git checkout develop
+git pull origin develop
+git branch -d feature/patient-search-filters
+```
+
+#### Scénario 2 : Release vers STAGING
+
+```bash
+# Quand plusieurs features sont prêtes et testées en DEV
+
+# 1. Vérifier que develop est stable
+# - Tous les tests passent en DEV
+# - Aucun bug critique
+# - Fonctionnalités validées
+
+# 2. Créer une Pull Request : develop → main
+# Sur GitHub:
+# - New Pull Request
+# - Base: main ← Compare: develop
+# - Titre: "Release v1.2.0 - Patient search and appointments"
+# - Lister toutes les features incluses
+# - Demander review du lead dev
+
+# 3. Validation
+# - Review du code
+# - Vérification des tests
+# - Validation fonctionnelle
+
+# 4. Merge vers main
+# - Merge la PR
+# - ✅ Pipeline CI/CD se déclenche automatiquement
+# - ✅ Build → Test → Deploy STAGING
+
+# 5. Tests sur STAGING (environnement de pré-production)
+curl https://staging.medisecure.health/health
+
+# Tests manuels complets:
+# - Smoke tests
+# - Tests de régression
+# - Validation métier
+# - Tests de performance
+
+# 6. Si OK → Prêt pour production
+# Si KO → Corriger en develop, recommencer
+```
+
+#### Scénario 3 : Déploiement PRODUCTION (manuel)
+
+```bash
+# ⚠️ UNIQUEMENT après validation complète sur STAGING
+# ⚠️ UNIQUEMENT par le responsable de déploiement
+
+# 1. Aller sur GitHub Actions
+# https://github.com/Coussecousse/esi-projet-fil-rouge/actions
+
+# 2. Sélectionner le workflow
+# "MediSecure CI/CD - HDS Compliant Pipeline"
+
+# 3. Cliquer "Run workflow"
+# - Branch: main
+# - Environment: production
+
+# 4. Approbation obligatoire
+# - 2 reviewers doivent approuver
+# - Wait timer de 5 minutes (sécurité)
+
+# 5. Le pipeline exécute
+# ✅ Backup automatique des bases de données
+# ✅ Vérification de l'intégrité du backup
+# ✅ Blue-green deployment (zero downtime)
+# ✅ Health checks après déploiement
+# ✅ Rollback automatique si échec
+
+# 6. Vérification post-déploiement
+curl https://medisecure.health/health
+curl -I https://medisecure.health | grep "Strict-Transport-Security"
+
+# 7. Monitoring
+# - Vérifier Grafana
+# - Surveiller les logs
+# - Valider avec les utilisateurs
+```
+
+#### Scénario 4 : Hotfix urgent en production
+
+```bash
+# 🚨 Pour bug critique découvert en PRODUCTION
+
+# 1. Créer la branche depuis main (pas develop!)
+git checkout main
+git pull origin main
+git checkout -b hotfix/security-critical-fix
+
+# 2. Corriger le problème (minimal, ciblé)
+git add .
+git commit -m "hotfix: fix SQL injection vulnerability in login"
+
+# 3. Pousser et créer PR vers main
+git push origin hotfix/security-critical-fix
+# PR: hotfix/security-critical-fix → main
+
+# 4. Review rapide mais obligatoire
+# - Vérification de la correction
+# - Tests de non-régression
+# - Approbation urgente
+
+# 5. Merge vers main
+# ✅ Deploy STAGING automatique
+# Validation rapide sur staging
+
+# 6. Deploy PRODUCTION (manuel, processus accéléré)
+# Workflow dispatch → production
+
+# 7. ⚠️ CRITIQUE: Merger aussi vers develop
+git checkout develop
+git pull origin develop
+git merge hotfix/security-critical-fix
+git push origin develop
+# Sinon, le bug reviendra à la prochaine release!
+```
+
+### 🎯 Règles d'or à respecter
+
+✅ **À FAIRE** :
+- Toujours créer une branche pour chaque feature/bug
+- Toujours passer par des Pull Requests
+- Toujours demander une code review
+- Tester localement avant de pousser
+- Commits atomiques avec messages clairs
+- Synchroniser develop régulièrement
+
+❌ **À NE JAMAIS FAIRE** :
+- Pusher directement sur `main` (interdit!)
+- Merger sans code review
+- Travailler directement sur `develop` (sauf urgence)
+- Oublier de merger un hotfix dans develop
+- Déployer en production sans tests sur staging
+- Forcer un push (`git push -f`) sur develop ou main
+
 ## 🏥 Conformité HDS & GDPR
 
 Ce pipeline respecte les exigences de **Hébergement de Données de Santé**:
@@ -93,25 +360,37 @@ Créez dans **Settings → Environments** :
    - ✅ Required reviewers (2 minimum)
    - ✅ Wait timer: 5 minutes
 
-## 🚀 Utilisation
+## 🚀 Utilisation - Résumé Rapide
 
-### Déploiement Automatique
+### ✅ Ce qui déclenche automatiquement les déploiements
+
+| Action Git | Déploiement | Environnement |
+|-----------|-------------|---------------|
+| PR merge → `develop` | ✅ Auto | DEV |
+| PR merge → `main` | ✅ Auto | STAGING |
+| Push direct → `develop` | ✅ Auto | DEV |
+| Push direct → `main` | ✅ Auto | STAGING |
+| Workflow dispatch | ⚠️ **Manuel** | PRODUCTION |
+
+### 🛑 Ce qui NE déclenche PAS de déploiement
+
+- Push sur branches `feature/*` → Aucun déploiement
+- Push sur branches `bugfix/*` → Aucun déploiement  
+- Pull Requests ouvertes → Tests uniquement (pas de deploy)
+- Commits sur autres branches → Ignorés par le pipeline
+
+### 📋 Workflow quotidien recommandé
 
 ```bash
-# Déployer sur DEV
-git push origin develop
+# QUOTIDIEN: Travailler sur feature
+feature/ma-feature → develop (PR) → Deploy DEV ✅
 
-# Déployer sur STAGING
-git push origin main
+# HEBDOMADAIRE: Release vers staging
+develop → main (PR) → Deploy STAGING ✅
+
+# MENSUEL ou VALIDATION: Production
+main + workflow_dispatch → Deploy PRODUCTION ⚠️ (manuel)
 ```
-
-### Déploiement Production (Manuel)
-
-1. Aller sur **Actions** → **CI/CD Pipeline - Microservices**
-2. Cliquer **Run workflow**
-3. Sélectionner `production`
-4. Attendre approbation des reviewers
-5. Déploiement automatique après validation
 
 ## 📊 Détail des Stages
 
@@ -384,35 +663,129 @@ Artifacts générés à chaque run:
 - Message queue metrics
 - Consumer/publisher monitoring
 
-## 🔄 Workflow Complet
+## 🔄 Workflow Complet - Git Flow Standard
 
-### Feature Development
-```bash
-# 1. Créer branche feature
-git checkout -b feature/new-feature
+### 🌿 Structure des branches
 
-# 2. Développer et commiter
-git commit -m "feat: nouvelle fonctionnalité"
-
-# 3. Push et créer PR vers develop
-git push origin feature/new-feature
-
-# 4. Merge PR → Auto deploy DEV
+```
+main          → PRODUCTION (stable, déploiement manuel)
+  ↑
+develop       → STAGING (pré-prod, déploiement auto)
+  ↑
+feature/*     → LOCAL DEV (pas de déploiement auto)
 ```
 
-### Release
+### 📝 Développement d'une Feature
+
 ```bash
-# 1. Merge develop → main
+# 1. Partir de develop (toujours à jour)
+git checkout develop
+git pull origin develop
+
+# 2. Créer branche feature
+git checkout -b feature/patient-search
+# Nommage: feature/*, bugfix/*, hotfix/*
+
+# 3. Développer et tester localement
+docker compose up -d  # Tests locaux
+# ... développement ...
+git add .
+git commit -m "feat: add patient search with filters"
+
+# 4. Push de la feature
+git push origin feature/patient-search
+
+# 5. Créer Pull Request vers develop
+# GitHub: Compare & pull request
+# Title: "feat: Patient search with filters"
+# Reviewers: Demander code review
+
+# 6. Après approbation → Merge PR
+# ⚠️ NE PAS merger directement, utiliser GitHub PR
+```
+
+### 🚀 Déploiement Development (automatique)
+
+```bash
+# Après merge de la PR feature → develop
+# Pipeline CI/CD se déclenche AUTOMATIQUEMENT
+# ✅ Build → Test → Deploy DEV
+
+# Vérifier le déploiement
+curl http://dev.medisecure.health:8000/health
+```
+
+### 📦 Release vers Staging (automatique)
+
+```bash
+# Quand plusieurs features sont prêtes et testées en DEV
+
+# 1. Créer PR: develop → main
+git checkout develop
+git pull origin develop
+# Sur GitHub: New Pull Request (develop → main)
+
+# 2. Review et validation
+# - Vérifier tests passent
+# - Vérifier security scans OK
+# - Approbation par lead dev
+
+# 3. Merge vers main
+# Pipeline CI/CD se déclenche AUTOMATIQUEMENT
+# ✅ Build → Test → Deploy STAGING
+
+# 4. Tests sur staging
+curl https://staging.medisecure.health/health
+# Tests manuels, smoke tests, etc.
+```
+
+### 🏥 Déploiement Production (MANUEL uniquement)
+
+```bash
+# ⚠️ UNIQUEMENT après validation complète sur STAGING
+
+# 1. Aller sur GitHub → Actions
+# 2. Sélectionner "MediSecure CI/CD - HDS Compliant Pipeline"
+# 3. Cliquer "Run workflow"
+# 4. Choisir:
+#    - Branch: main
+#    - Environment: production
+# 5. Attendre approbation des 2 reviewers (obligatoire)
+# 6. Pipeline exécute:
+#    - Backup automatique
+#    - Blue-green deployment
+#    - Health checks
+#    - Rollback automatique si échec
+
+# 7. Vérification post-déploiement
+curl https://medisecure.health/health
+# Monitoring Grafana, logs, etc.
+```
+
+### 🐛 Hotfix en Production (urgent)
+
+```bash
+# Pour bug critique en production
+
+# 1. Créer branche depuis main
 git checkout main
-git merge develop
+git pull origin main
+git checkout -b hotfix/critical-security-fix
 
-# 2. Push → Auto deploy STAGING
-git push origin main
+# 2. Corriger le bug
+git commit -m "hotfix: fix critical security vulnerability"
+git push origin hotfix/critical-security-fix
 
-# 3. Tester sur staging
-curl https://staging.medisecure.local/health
+# 3. PR vers main (fast-track)
+# Review rapide mais obligatoire
 
-# 4. Deploy PRODUCTION (manuel via GitHub Actions UI)
+# 4. Merge → Deploy production (manuel)
+
+# 5. ⚠️ IMPORTANT: Merger aussi vers develop
+git checkout develop
+git merge hotfix/critical-security-fix
+git push origin develop
+# Pour éviter régression
 ```
 
 ## 🎯 Optimisations Implémentées
