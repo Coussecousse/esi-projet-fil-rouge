@@ -1,0 +1,16 @@
+# Configuration des sauvegardes automatisées MediSecure
+
+# Sauvegarde quotidienne (données critiques) - 2h du matin
+0 2 * * * /app/scripts/backup/backup-databases.sh daily >> /var/log/backup-daily.log 2>&1
+
+# Sauvegarde hebdomadaire (complète) - Dimanche 3h du matin  
+0 3 * * 0 /app/scripts/backup/backup-databases.sh weekly >> /var/log/backup-weekly.log 2>&1
+
+# Vérification de l'espace disque - Tous les jours à midi
+0 12 * * * df -h /backups | awk 'NR==2{if($5+0 > 85) print "ALERTE: Espace disque backups > 85%: "$5}' | logger -t backup-monitor
+
+# Nettoyage des logs de sauvegarde - Tous les mois
+0 4 1 * * find /var/log -name "backup-*.log" -mtime +90 -delete
+
+# Test de connectivité des services - Toutes les heures (optionnel)
+0 * * * * docker-compose -f /app/compose.yml ps --services --filter "status=running" | wc -l > /tmp/services-count.txt
