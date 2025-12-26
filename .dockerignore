@@ -1,0 +1,65 @@
+# Ignore build artifacts
+.dockerignore
+Dockerfile*
+docker-compose*
+
+# VCS
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+README*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.mypy_cache
+venv
+env
+ENV
+
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+.eslintcache
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs
+
+# Temporary
+*.tmp
+.tmp
+.temp
+*.bak
+*.backup
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,137 @@
+# Prometheus Configuration for MediSecure
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'medisecure-monitor'
+    environment: 'production'
+
+# Scrape configurations
+scrape_configs:
+  # Microservices - FastAPI applications
+  - job_name: 'service-patient'
+    static_configs:
+      - targets: ['service-patient:8000']
+        labels:
+          service: 'patient'
+          type: 'microservice'
+
+  - job_name: 'service-rdv'
+    static_configs:
+      - targets: ['service-rdv:8000']
+        labels:
+          service: 'appointment'
+          type: 'microservice'
+
+  - job_name: 'service-documents'
+    static_configs:
+      - targets: ['service-documents:8000']
+        labels:
+          service: 'documents'
+          type: 'microservice'
+
+  - job_name: 'service-billing'
+    static_configs:
+      - targets: ['service-billing:8000']
+        labels:
+          service: 'billing'
+          type: 'microservice'
+
+  # Infrastructure Components
+  - job_name: 'kong'
+    static_configs:
+      - targets: ['kong:8001']
+        labels:
+          service: 'api-gateway'
+          type: 'infrastructure'
+
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+        labels:
+          service: 'message-broker'
+          type: 'infrastructure'
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+        labels:
+          service: 'cache'
+          type: 'infrastructure'
+
+  # Databases
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+        labels:
+          service: 'postgresql'
+          type: 'database'
+
+  - job_name: 'mongodb'
+    static_configs:
+      - targets: ['mongodb:27017']
+        labels:
+          service: 'mongodb'
+          type: 'database'
+
+  - job_name: 'mariadb'
+    static_configs:
+      - targets: ['mariadb:3306']
+        labels:
+          service: 'mariadb'
+          type: 'database'
+
+  # Frontend
+  - job_name: 'frontend'
+    static_configs:
+      - targets: ['frontend:3000']
+        labels:
+          service: 'frontend'
+          type: 'application'
+
+  # HAProxy
+  - job_name: 'haproxy'
+    static_configs:
+      - targets: ['haproxy:8404']
+        labels:
+          service: 'load-balancer'
+          type: 'infrastructure'
+
+          type: 'backend'
+
+  - job_name: 'service-facturation'
+    static_configs:
+      - targets: ['service-facturation:8000']
+        labels:
+          service: 'facturation'
+          type: 'backend'
+
+  # Redis - Exporter metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['medisecure-redis-exporter:9121']
+        labels:
+          service: 'redis'
+          type: 'cache'
+    metrics_path: '/metrics'
+
+  # RabbitMQ - Management plugin metrics
+  # Note: RabbitMQ management plugin provides Prometheus metrics on port 15692
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['medisecure-rabbitmq:15692']
+        labels:
+          service: 'rabbitmq'
+          type: 'message-queue'
+    metrics_path: '/metrics'
+
+  # HAProxy - Stats page metrics
+  # Note: HAProxy stats are available on port 8404
+  - job_name: 'haproxy'
+    static_configs:
+      - targets: ['medisecure-haproxy:8404']
+        labels:
+          service: 'haproxy'
+          type: 'loadbalancer'
+    metrics_path: '/metrics'

@@ -1,0 +1,418 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # DATABASES
+  # ============================================================================
+  
+  # PostgreSQL - Patients & Users
+  postgres:
+    image: postgres:13-alpine
+    container_name: medisecure-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-medisecure_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medisecure_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-medisecure_patients}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/init-scripts/init-patients-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - medisecure-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medisecure_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB - Appointments
+  mongodb:
+    image: mongo:5.0
+    container_name: medisecure-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-medisecure_admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-medisecure_pass}
+      MONGO_INITDB_DATABASE: medisecure_appointments
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - medisecure-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MariaDB - Billing
+  mariadb:
+    image: mariadb:10.6
+    container_name: medisecure-mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-medisecure_root}
+      MYSQL_DATABASE: medisecure_billing
+      MYSQL_USER: ${MARIADB_USER:-medisecure_billing}
+      MYSQL_PASSWORD: ${MARIADB_PASSWORD:-medisecure_pass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - medisecure-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO - Document Storage
+  minio:
+    image: minio/minio:latest
+    container_name: medisecure-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-medisecure_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-medisecure_pass123}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - medisecure-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # ============================================================================
+  # INFRASTRUCTURE
+  # ============================================================================
+
+  # Redis - Cache
+  redis:
+    image: redis:6-alpine
+    container_name: medisecure-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-medisecure_pass}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - medisecure-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ - Message Queue
+  rabbitmq:
+    image: rabbitmq:3.8-management-alpine
+    container_name: medisecure-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-medisecure}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-medisecure_pass}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - medisecure-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Keycloak - Authentication
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0
+    container_name: medisecure-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-medisecure_user}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-medisecure_pass}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - medisecure-network
+    command: start-dev
+
+  # Kong - API Gateway
+  kong-db:
+    image: postgres:13-alpine
+    container_name: medisecure-kong-db
+    environment:
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: kong
+      POSTGRES_DB: kong
+    volumes:
+      - kong_data:/var/lib/postgresql/data
+    networks:
+      - medisecure-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kong"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kong-migration:
+    image: kong:3.3-alpine
+    container_name: medisecure-kong-migration
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-db
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+    depends_on:
+      kong-db:
+        condition: service_healthy
+    networks:
+      - medisecure-network
+    command: kong migrations bootstrap
+    restart: on-failure
+
+  kong:
+    image: kong:3.3-alpine
+    container_name: medisecure-kong
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-db
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_ADMIN_GUI_URL: http://localhost:8002
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+      - "8001:8001"
+      - "8002:8002"
+    depends_on:
+      kong-db:
+        condition: service_healthy
+      kong-migration:
+        condition: service_completed_successfully
+    networks:
+      - medisecure-network
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # HAProxy - Load Balancer
+  haproxy:
+    image: haproxy:2.4-alpine
+    container_name: medisecure-haproxy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8404:8404"
+    volumes:
+      - ./infrastructure/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      - medisecure-network
+    depends_on:
+      - kong
+      - frontend
+
+  # ============================================================================
+  # MICROSERVICES
+  # ============================================================================
+
+  # Service Patient
+  service-patient:
+    build:
+      context: ./services/service-patient
+      dockerfile: Dockerfile
+    container_name: medisecure-service-patient
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-medisecure_user}:${POSTGRES_PASSWORD:-medisecure_pass}@postgres:5432/${POSTGRES_DB:-medisecure_patients}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-medisecure_pass}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-medisecure}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-medisecure_pass}
+      KEYCLOAK_URL: http://keycloak:8080
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - medisecure-network
+    restart: unless-stopped
+
+  # Service Rendez-vous
+  service-rdv:
+    build:
+      context: ./services/service-rdv
+      dockerfile: Dockerfile
+    container_name: medisecure-service-rdv
+    environment:
+      MONGO_URI: mongodb://${MONGO_USER:-medisecure_admin}:${MONGO_PASSWORD:-medisecure_pass}@mongodb:27017/medisecure_appointments?authSource=admin
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-medisecure_pass}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-medisecure}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-medisecure_pass}
+      KEYCLOAK_URL: http://keycloak:8080
+    ports:
+      - "8002:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - medisecure-network
+    restart: unless-stopped
+
+  # Service Documents
+  service-documents:
+    build:
+      context: ./services/service-documents
+      dockerfile: Dockerfile
+    container_name: medisecure-service-documents
+    environment:
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-medisecure_admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-medisecure_pass123}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-medisecure_pass}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-medisecure}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-medisecure_pass}
+      KEYCLOAK_URL: http://keycloak:8080
+    ports:
+      - "8003:8000"
+    depends_on:
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - medisecure-network
+    restart: unless-stopped
+
+  # Service Facturation
+  service-billing:
+    build:
+      context: ./services/service-billing
+      dockerfile: Dockerfile
+    container_name: medisecure-service-billing
+    environment:
+      MARIADB_HOST: mariadb
+      MARIADB_PORT: 3306
+      MARIADB_USER: ${MARIADB_USER:-medisecure_billing}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-medisecure_pass}
+      MARIADB_DATABASE: medisecure_billing
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-medisecure_pass}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-medisecure}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-medisecure_pass}
+      KEYCLOAK_URL: http://keycloak:8080
+    ports:
+      - "8004:8000"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - medisecure-network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./medisecure-frontend
+      dockerfile: Dockerfile
+    container_name: medisecure-frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api
+      VITE_KEYCLOAK_URL: http://localhost:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - kong
+    networks:
+      - medisecure-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # MONITORING
+  # ============================================================================
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: medisecure-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - medisecure-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: medisecure-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+    volumes:
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    networks:
+      - medisecure-network
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  mariadb_data:
+  minio_data:
+  redis_data:
+  rabbitmq_data:
+  kong_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  medisecure-network:
+    driver: bridge

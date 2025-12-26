@@ -1,29 +1,20 @@
-# Frontend (React.js)
-# dependencies
+# ============================================================================
+# FRONTEND (React.js)
+# ============================================================================
 node_modules/
 /.pnp
 .pnp.js
-
-# testing
 /coverage
-
-# production
 /build
 /dist
-
-# misc
 .DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Backend (Python)
-# Python
+# ============================================================================
+# BACKEND (Python)
+# ============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -44,64 +35,92 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # Virtual Environment
 venv/
 ENV/
-.env
+env/
 
-# IDE
+# ============================================================================
+# TESTING & COVERAGE
+# ============================================================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.cache/
+*.cover
+.hypothesis/
+.tox/
+
+# ============================================================================
+# DATABASE
+# ============================================================================
+*.db
+*.sqlite3
+*.sql.gz
+
+# ============================================================================
+# IDE & EDITORS
+# ============================================================================
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
+.project
+.classpath
+.settings/
 
-# Database
-*.db
-*.sqlite3
-
-# Logs
+# ============================================================================
+# LOGS
+# ============================================================================
 logs/
 *.log
+log/
 
-# Docker
-.dockerignore
-
-# Environment variables
+# ============================================================================
+# ENVIRONMENT & SECRETS
+# ============================================================================
 .env
 .env.local
 .env.development
 .env.test
 .env.production
+.env.*.local
+secrets/
 
-# FastAPI/Python specific
-.pytest_cache/
-htmlcov/
-.coverage
-.coverage.*
-.cache/
+# ============================================================================
+# DOCKER
+# ============================================================================
+docker-compose.override.yml
 
-# Generated files
-.sass-cache/
-.eslintcache
+# ============================================================================
+# OS
+# ============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Temporary files
+# ============================================================================
+# TEMPORARY FILES
+# ============================================================================
 .tmp/
 .temp/
+*.tmp
+*.bak
+*.backup
 
-# TODO files (never commit personal TODOs)
+# ============================================================================
+# DOCUMENTATION (auto-generated or personal notes)
+# ============================================================================
 TODO.md
-TODO.txt
 NOTES.md
-
-# Secrets (HDS Compliance - NEVER COMMIT)
-secrets/
-*.txt
-!secrets/README.md
-
-# Course materials (personal)
 COURSE_*.md
 *_GUIDE.md
 *_COMPLETE.md
-*_ARCHITECTURE.md
-*_DEPLOYMENT.md

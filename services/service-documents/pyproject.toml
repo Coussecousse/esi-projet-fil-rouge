@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.poetry]
+name = "medisecure-backend"
+version = "0.1.0"
+description = "Backend pour l'application MediSecure"
+authors = ["Votre Nom <votre.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+fastapi = "^0.95.1"
+uvicorn = "^0.22.0"
+sqlalchemy = "^2.0.15"
+pydantic = "^1.10.8"
+dependency-injector = "^4.41.0"
+alembic = "^1.11.1"
+psycopg2-binary = "^2.9.6"
+python-dotenv = "^1.0.0"
+python-jose = "^3.3.0"
+passlib = "^1.7.4"
+python-multipart = "^0.0.6"
+pytest = "^7.3.1"
+pytest-cov = "^4.1.0"
+
+[tool.poetry.dev-dependencies]
+black = "^23.3.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+mypy = "^1.3.0"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true

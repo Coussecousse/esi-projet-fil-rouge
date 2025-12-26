@@ -1,40 +1,56 @@
 #!/bin/bash
 
-# Script de démarrage de l'application MediSecure
+# MediSecure - Quick Start Script
+# This script starts all microservices and infrastructure
 
-# Vérification des prérequis
-echo "Vérification des prérequis..."
-if ! command -v docker &> /dev/null; then
-    echo "Docker n'est pas installé. Veuillez l'installer avant de continuer."
+set -e
+
+echo "================================"
+echo "MediSecure - Starting Services"
+echo "================================"
+
+# Check if Docker is running
+if ! docker info > /dev/null 2>&1; then
+    echo "Error: Docker is not running. Please start Docker first."
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo "Docker Compose n'est pas installé. Veuillez l'installer avant de continuer."
-    exit 1
+# Check if .env file exists
+if [ ! -f .env ]; then
+    echo "Warning: .env file not found. Copying from .env.example..."
+    cp .env.example .env
+    echo "Please edit .env file with your configuration before running in production."
 fi
 
-# Démarrage des services
-echo "Démarrage des services MediSecure..."
+# Start all services
+echo ""
+echo "Starting all services with docker-compose..."
 docker-compose up -d
 
-# Attente que les services soient prêts
-echo "Attente que les services soient prêts..."
-sleep 5
+# Wait for services to be healthy
+echo ""
+echo "Waiting for services to be healthy..."
+sleep 10
 
-# Affichage des URLs d'accès
+# Check service status
 echo ""
-echo "================================================="
-echo "MediSecure est en cours d'exécution !"
-echo "================================================="
+echo "Checking service status..."
+docker-compose ps
+
 echo ""
-echo "🌐 Frontend: http://localhost:5173"
-echo "🚀 API: http://localhost:8000/api/docs"
+echo "================================"
+echo "Services started successfully!"
+echo "================================"
 echo ""
-echo "Identifiants par défaut :"
-echo "Email: admin@medisecure.com"
-echo "Mot de passe: Admin123!"
+echo "Access URLs:"
+echo "  - Frontend:           http://localhost:80"
+echo "  - Kong API Gateway:   http://localhost:8000"
+echo "  - Keycloak:           http://localhost:8080"
+echo "  - RabbitMQ:           http://localhost:15672"
+echo "  - Grafana:            http://localhost:3001"
+echo "  - Prometheus:         http://localhost:9090"
+echo "  - MinIO Console:      http://localhost:9001"
 echo ""
-echo "Pour afficher les logs : docker-compose logs -f"
-echo "Pour arrêter : docker-compose down"
-echo "================================================="
+echo "To view logs: docker-compose logs -f"
+echo "To stop:      docker-compose down"
+echo ""

@@ -1,4 +1,0 @@
-# IMPORTANT : Ne commitez JAMAIS ce fichier avec les vraies valeurs !
-# Ajoutez-le à .gitignore
-
-secrets.yaml

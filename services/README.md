@@ -1,68 +1,39 @@
 # MediSecure - Services Directory
 
-Ce dossier contient les 4 microservices de l'application MediSecure.
+Ce dossier contient les 4 microservices indépendants de l'application MediSecure.
 
 ## Structure
 
+Chaque service est un projet FastAPI autonome avec sa propre base de données :
+
 ```
 services/
-├── service-rdv/          # Service Rendez-vous (Flask + MongoDB)
-├── service-patient/      # Service Patient (Django + PostgreSQL)
-├── service-documents/    # Service Documents (.NET + MinIO)
-└── service-facturation/  # Service Facturation (FastAPI + MariaDB)
+├── service-patient/       # Gestion des patients (PostgreSQL)
+├── service-rdv/          # Gestion des rendez-vous (MongoDB)
+├── service-documents/    # Gestion des documents (MinIO)
+└── service-billing/      # Gestion de la facturation (MariaDB)
 ```
 
-## Services
+## Développement
 
-| Service | Technologie | Port | Database | Description |
-|---------|-------------|------|----------|-------------|
-| service-rdv | Flask 2.0 + Python 3.9 | 8001 | MongoDB | Gestion des rendez-vous |
-| service-patient | Django 2.2 + Python 3.7 | 8002 | PostgreSQL | Gestion des patients |
-| service-documents | .NET Core 3.1 | 8003 | MinIO | Gestion des documents |
-| service-facturation | FastAPI + Python 3.8 | 8004 | MariaDB | Gestion de la facturation |
-
-## Démarrage rapide
-
-### Docker Compose (recommandé)
+Chaque service peut être développé et testé indépendamment :
 
 ```bash
-# Depuis la racine du projet
-docker-compose up -d
-
-# Vérifier que tous les services sont démarrés
-docker-compose ps
-
-# Logs d'un service spécifique
-docker-compose logs -f service-rdv
+cd services/service-patient
+pip install -r requirements.txt
+uvicorn api.main:app --reload --port 8001
 ```
 
-### Développement local
+## Communication
 
-Chaque service peut être lancé indépendamment :
+Les services communiquent entre eux via :
+- **RabbitMQ** : Messages asynchrones
+- **Kong API Gateway** : Routage et orchestration
+- **Redis** : Cache partagé
 
+## Déploiement
+
+Les services sont déployés via Docker Compose :
 ```bash
-# Service RDV
-cd service-rdv && python app.py
-
-# Service Patient
-cd service-patient && python manage.py runserver
-
-# Service Documents
-cd service-documents && dotnet run
-
-# Service Facturation
-cd service-facturation && python app.py
+docker-compose up service-patient service-rdv service-documents service-billing
 ```
-
-## Accès aux services
-
-- **Service RDV**: http://localhost:8001
-- **Service Patient**: http://localhost:8002
-- **Service Documents**: http://localhost:8003
-- **Service Facturation**: http://localhost:8004
-- **HAProxy (API Gateway)**: http://localhost
-- **HAProxy Stats**: http://localhost:8404/stats
-
-## Documentation
-
-Consultez `MICROSERVICES_ARCHITECTURE.md` pour la documentation complète de l'architecture.

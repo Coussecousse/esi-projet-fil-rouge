@@ -1,0 +1,18 @@
+# Secrets - NE JAMAIS COMMITER
+00-secrets.yaml
+*-secrets.yaml
+!*-secrets.yaml.example
+
+# Certificats et clés
+*.key
+*.crt
+*.pem
+*.pfx
+
+# Configurations locales
+kubeconfig
+*.kubeconfig
+
+# Fichiers temporaires
+*.tmp
+*.bak

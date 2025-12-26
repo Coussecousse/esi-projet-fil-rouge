@@ -1,6 +1,0 @@
-# Django Patient App
-from django.apps import AppConfig
-
-class PatientsConfig(AppConfig):
-    name = 'patients'
-    verbose_name = 'Patient Management'
